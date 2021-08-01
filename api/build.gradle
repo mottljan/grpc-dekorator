@@ -1,0 +1,9 @@
+dependencies {
+
+    implementation(Deps.coroutines)
+    implementation(Deps.kotlin)
+
+    testImplementation(Deps.coroutinesTesting)
+    testImplementation(Deps.junitJupiter)
+    testImplementation(Deps.kluent)
+}

@@ -1,0 +1,34 @@
+buildscript {
+    ext {
+        // Versions can not be used directly in plugin version declaration below so we need to store it to variable like this
+        kotlin_version = "${Versions.kotlin}"
+        detect_version = "${Versions.detekt}"
+    }
+}
+
+plugins {
+    id "org.jetbrains.kotlin.jvm" version "$kotlin_version" apply false
+    id "io.gitlab.arturbosch.detekt" version "$detect_version" apply false
+}
+
+allprojects {
+    plugins.apply("org.jetbrains.kotlin.jvm")
+
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    apply from: "$rootDir/detekt/detekt.gradle"
+
+    compileKotlin {
+        kotlinOptions {
+            jvmTarget = "1.8"
+        }
+    }
+    compileTestKotlin {
+        kotlinOptions {
+            jvmTarget = "1.8"
+        }
+    }
+}

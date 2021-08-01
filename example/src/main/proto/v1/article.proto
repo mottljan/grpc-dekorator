@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package v1;
+
+import "type/article.proto";
+
+option java_package = "v1";
+option java_multiple_files = true;
+
+service Article {
+  rpc GetArticle(GetArticleRequest) returns (GetArticleResponse);
+
+  rpc WatchArticle(WatchArticleRequest) returns (stream WatchArticleResponse);
+
+  rpc GetAnotherArticle(GetArticleRequest) returns (GetArticleResponse);
+
+  rpc WatchAnotherArticle(WatchArticleRequest) returns (stream WatchArticleResponse);
+}
+
+message GetArticleRequest {
+  string id = 1;
+}
+
+message GetArticleResponse {
+  type.Article article = 1;
+}
+
+message WatchArticleRequest {
+  string id = 1;
+}
+
+message WatchArticleResponse {
+  type.Article article = 1;
+}

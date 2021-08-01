@@ -1,0 +1,64 @@
+buildscript {
+    ext {
+        // Versions can not be used directly in plugin version declaration below so we need to store it to variable like this
+        ksp_version = "${Versions.ksp}"
+        protobuf_version = "${Versions.protobufPlugin}"
+    }
+}
+
+plugins {
+    id "com.google.devtools.ksp" version "$ksp_version"
+    id "com.google.protobuf" version "$protobuf_version"
+}
+
+protobuf {
+    protoc { artifact = Deps.protobufProtoc }
+    plugins {
+        grpc {
+            artifact = Deps.gRpcJavaProtocGen
+        }
+        grpckt {
+            artifact = Deps.gRpcKotlinProtocGen
+        }
+    }
+    generateProtoTasks {
+        all().forEach { task ->
+            task.plugins {
+                grpc {}
+                grpckt {}
+            }
+        }
+    }
+}
+
+kotlin.sourceSets.main {
+    kotlin.srcDirs(
+        file("$buildDir/generated/ksp/main/kotlin"),
+        file("$buildDir/generated/source/proto/main/grpckt"),
+        file("$buildDir/generated/source/proto/main/java")
+    )
+}
+
+dependencies {
+    implementation(project(":api"))
+    ksp(project(":processor"))
+
+    implementation(Deps.coroutines)
+    implementation(Deps.kotlin)
+
+    implementation(Deps.gRpcProtobuf)
+    implementation(Deps.protobufJavaUtil)
+    implementation(Deps.gRpcKotlinStub)
+    implementation(Deps.javaxAnnotation)
+}
+
+// This is needed because otherwise afterEvaluate is incorrectly executed before
+// "processor" project is evaluated and it causes configuration to fail :/.
+evaluationDependsOn(":processor")
+afterEvaluate {
+    def kspTaskName = "kspKotlin"
+    def generateProtoTaskName = "generateProto"
+    def kspTask = tasks.getByName(kspTaskName)
+    def generateProtoTask = tasks.getByName(generateProtoTaskName)
+    kspTask.dependsOn(generateProtoTask)
+}

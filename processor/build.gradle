@@ -1,0 +1,11 @@
+dependencies {
+    implementation(project(":api"))
+
+    implementation(Deps.coroutines)
+    implementation(Deps.kotlin)
+    implementation(Deps.ksp)
+
+    testImplementation(Deps.junitJupiter)
+    testImplementation(Deps.kluent)
+    testImplementation(Deps.kspTesting)
+}
