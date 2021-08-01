@@ -1,0 +1,11 @@
+plugins.apply('io.gitlab.arturbosch.detekt')
+
+detekt {
+    buildUponDefaultConfig = true
+    config = files("${rootProject.projectDir}/detekt/detekt-config.yml", "${rootProject.projectDir}/detekt/detekt-config-common.yml")
+    ignoreFailures = true
+}
+
+dependencies {
+    detektPlugins(Deps.detektFormatting)
+}

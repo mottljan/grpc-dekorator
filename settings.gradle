@@ -1,0 +1,12 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        google()
+    }
+}
+
+rootProject.name = "grpc-kotlin-stub-decorator"
+
+include(":api")
+include(":example")
+include(":processor")
