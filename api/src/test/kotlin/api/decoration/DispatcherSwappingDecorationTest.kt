@@ -1,6 +1,5 @@
 package api.decoration
 
-import api.extension.CoroutineTest
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -13,6 +12,7 @@ import kotlinx.coroutines.test.runBlockingTest
 import org.amshove.kluent.`should be instance of`
 import org.amshove.kluent.`should be`
 import org.junit.jupiter.api.Test
+import testing.extension.CoroutineTest
 
 @ExperimentalCoroutinesApi
 internal class DispatcherSwappingDecorationTest : CoroutineTest() {

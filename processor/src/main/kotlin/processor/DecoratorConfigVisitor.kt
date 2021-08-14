@@ -19,6 +19,7 @@ import com.google.devtools.ksp.symbol.Modifier
 import kotlinx.coroutines.flow.Flow
 import java.io.OutputStream
 import java.lang.StringBuilder
+import java.util.Locale
 
 private const val PACKAGE_NAME = "stub.decorator.wtf" // TODO Update once known and also update packages in modules
 
@@ -37,8 +38,7 @@ internal class DecoratorConfigVisitor(private val environment: SymbolProcessorEn
         if (implementsRequiredInterface) {
             generateStubDecorator(classDeclaration)
         } else {
-            val message = "Class ${classDeclaration.simpleName.asString()} annotated with ${DecoratorConfiguration::class.simpleName} " +
-                "does not implement ${DecoratorConfig::class.simpleName}"
+            val message = DecoratorProcessor.generateMissingInterfaceImplErrorMsg(classDeclaration.simpleName.asString())
             logger.error(message, classDeclaration)
         }
     }
@@ -59,12 +59,20 @@ internal class DecoratorConfigVisitor(private val environment: SymbolProcessorEn
     }
 
     private fun Sequence<KSFunctionDeclaration>.findStubReference(): KSTypeReference {
-        return find { it.simpleName.asString() == DecoratorConfig<*>::provideStub.name }!!.returnType!!
+        return find { it.simpleName.asString() == DecoratorConfig<*>::getStub.name }!!.returnType!!
     }
 
     private fun createDecoratorFile(name: String): OutputStream {
         return environment.codeGenerator.createNewFile(
-            dependencies = Dependencies(false),
+            // TODO ALL_FILES has to be used instead of this line to keep generated files for multiple
+            //  consecutive KSP runs. If Dependencies(false) is used, files are generated for the first run
+            //  and for the second it is deleted and not generated again, then the ksp build folder
+            //  needs to be deleted to generate files again. Using ALL_FILES the generated files are never
+            //  generated for multiple ksp runs and it does not even regenerate files and use caching properly,
+            //  so if files already exist, the kspKotlin is UP_TO_DATE and does not run again. Not
+            //  sure if bug or I just don't understand how this works.
+//            dependencies = Dependencies(false),
+            dependencies = Dependencies.ALL_FILES,
             packageName = PACKAGE_NAME,
             fileName = name
         )
@@ -95,20 +103,38 @@ private class DecoratorFileContentGenerator(
     }
 
     private fun StringBuilder.appendClassHeaderAndProperties() {
-        val stubQualifiedName = stubResolvedType.declaration.qualifiedName!!.asString()
+        val visibilityModifier = stubResolvedType.declaration.modifiers
+            .getVisibility()
+            ?.toString()
+            ?.lowercase(Locale.getDefault())
+            ?.let { "$it " }
+            ?: ""
         val decoratorConfigPropertyName = "decoratorConfig"
+        val stubQualifiedName = stubResolvedType.declaration.qualifiedName!!.asString()
         append(
             """
             @Suppress("DEPRECATION_ERROR")
-            class $stubDecoratorSimpleName(
+            ${visibilityModifier}class $stubDecoratorSimpleName(
                 $decoratorConfigPropertyName: ${DecoratorConfig::class.qualifiedName}<$stubQualifiedName>
             ) : ${CoroutineStubDecorator::class.qualifiedName}() {
                 
-                private val $stubPropertyName = $decoratorConfigPropertyName.${DecoratorConfig<*>::provideStub.name}()
-                private val $DECORATIONS_PROPERTY_NAME = $decoratorConfigPropertyName.${DecoratorConfig<*>::provideDecorations.name}()
+                private val $stubPropertyName = $decoratorConfigPropertyName.${DecoratorConfig<*>::getStub.name}()
+                private val $DECORATION_PROVIDERS_PROPERTY_NAME = $decoratorConfigPropertyName.${DecoratorConfig<*>::getDecorationProviders.name}()
             """.trimIndent()
         )
         append("\n")
+    }
+
+    /**
+     * Returns visibility [Modifier] and null if there is no explicit modifier (so public is used)
+     */
+    private fun Set<Modifier>.getVisibility(): Modifier? {
+        return find {
+            it == Modifier.PRIVATE ||
+                it == Modifier.PROTECTED ||
+                it == Modifier.INTERNAL ||
+                it == Modifier.PUBLIC
+        }
     }
 
     private fun StringBuilder.appendDecoratingFunctions() {
@@ -145,7 +171,7 @@ private class DecoratorFileContentGenerator(
                 )
             }
             else -> {
-                val message = "Decorating fun for $funSimpleName not generated! Only suspend fun or fun returning Flow is supported."
+                val message = DecoratorProcessor.generateNotGeneratedFunctionWarningMsg(funSimpleName)
                 append("    // $message\n")
                 logger.warn(message, originalFunctionDeclaration)
             }
@@ -168,7 +194,7 @@ private class DecoratorFileContentGenerator(
         appendDecoratingFunctionParameters(originalFunctionDeclaration)
         appendDecoratingFunctionReturnType(originalFunctionDeclaration, originalResolvedReturnType)
         append(" {\n")
-        append("        return $DECORATIONS_PROPERTY_NAME.iterator().$iteratorHelperMethodName {\n")
+        append("        return $DECORATION_PROVIDERS_PROPERTY_NAME.iterator().$iteratorHelperMethodName {\n")
         append("            $stubPropertyName.$funSimpleName")
         appendOriginalFunCallParams(originalFunctionDeclaration)
         append("        }\n")
@@ -247,6 +273,6 @@ private class DecoratorFileContentGenerator(
 
     companion object {
 
-        private const val DECORATIONS_PROPERTY_NAME = "decorations"
+        private const val DECORATION_PROVIDERS_PROPERTY_NAME = "decorationProviders"
     }
 }

@@ -44,17 +44,19 @@ dependencies {
     ksp(project(":processor"))
 
     implementation(Deps.coroutines)
+    implementation(Deps.coroutinesTesting)
+    implementation(Deps.junitJupiter)
     implementation(Deps.kotlin)
 
-    implementation(Deps.gRpcProtobuf)
-    implementation(Deps.protobufJavaUtil)
     implementation(Deps.gRpcKotlinStub)
+    implementation(Deps.gRpcProtobuf)
     implementation(Deps.javaxAnnotation)
+    implementation(Deps.protobufJavaUtil)
+
+    testImplementation(Deps.kluent)
+
 }
 
-// This is needed because otherwise afterEvaluate is incorrectly executed before
-// "processor" project is evaluated and it causes configuration to fail :/.
-evaluationDependsOn(":processor")
 afterEvaluate {
     def kspTaskName = "kspKotlin"
     def generateProtoTaskName = "generateProto"

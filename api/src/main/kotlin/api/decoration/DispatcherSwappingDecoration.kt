@@ -17,4 +17,9 @@ class DispatcherSwappingDecoration(private val dispatcher: CoroutineDispatcher) 
     override fun <Response> decorateStream(rpc: () -> Flow<Response>): Flow<Response> {
         return rpc().flowOn(dispatcher)
     }
+
+    class Provider(
+        initStrategy: Decoration.InitStrategy,
+        private val dispatcher: CoroutineDispatcher
+    ) : Decoration.Provider<DispatcherSwappingDecoration>(initStrategy, { DispatcherSwappingDecoration(dispatcher) })
 }

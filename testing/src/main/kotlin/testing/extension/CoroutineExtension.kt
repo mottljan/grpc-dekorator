@@ -1,4 +1,4 @@
-package api.extension
+package testing.extension
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

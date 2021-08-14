@@ -3,6 +3,7 @@ dependencies {
     implementation(Deps.coroutines)
     implementation(Deps.kotlin)
 
+    testImplementation(project(":testing"))
     testImplementation(Deps.coroutinesTesting)
     testImplementation(Deps.junitJupiter)
     testImplementation(Deps.kluent)
