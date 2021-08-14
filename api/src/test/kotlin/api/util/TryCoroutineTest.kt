@@ -1,6 +1,5 @@
 package api.util
 
-import api.extension.CoroutineTest
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -9,6 +8,7 @@ import org.amshove.kluent.`should be equal to`
 import org.amshove.kluent.`should be`
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import testing.extension.CoroutineTest
 
 @ExperimentalCoroutinesApi
 class TryCoroutineTest : CoroutineTest() {

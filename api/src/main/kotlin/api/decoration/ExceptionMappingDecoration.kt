@@ -3,6 +3,7 @@ package api.decoration
 import api.util.catch
 import api.util.tryCoroutine
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 
@@ -23,6 +24,11 @@ class ExceptionMappingDecoration(private val exceptionMapper: ExceptionMapper) :
     override fun <Response> decorateStream(rpc: () -> Flow<Response>): Flow<Response> {
         return rpc().catch { throw exceptionMapper.mapException(it) }
     }
+
+    class Provider(
+        initStrategy: Decoration.InitStrategy,
+        private val exceptionMapper: ExceptionMapper
+    ) : Decoration.Provider<ExceptionMappingDecoration>(initStrategy, { ExceptionMappingDecoration(exceptionMapper) })
 }
 
 /**

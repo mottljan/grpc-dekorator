@@ -1,6 +1,5 @@
 package api.decoration
 
-import api.extension.CoroutineTest
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
@@ -14,6 +13,7 @@ import kotlinx.coroutines.test.runBlockingTest
 import org.amshove.kluent.`should be equal to`
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import testing.extension.CoroutineTest
 
 @ExperimentalCoroutinesApi
 internal class ExceptionMappingDecorationTest : CoroutineTest() {

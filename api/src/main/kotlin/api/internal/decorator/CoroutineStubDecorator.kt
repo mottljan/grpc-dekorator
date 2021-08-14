@@ -11,17 +11,17 @@ import kotlinx.coroutines.flow.Flow
 @Deprecated("Should be used only by generated decorators!", level = DeprecationLevel.HIDDEN)
 abstract class CoroutineStubDecorator {
 
-    protected suspend fun <Resp> Iterator<Decoration>.applyNextDecorationOrCallRpc(callRpc: suspend () -> Resp): Resp {
+    protected suspend fun <Resp> Iterator<Decoration.Provider<*>>.applyNextDecorationOrCallRpc(callRpc: suspend () -> Resp): Resp {
         return if (hasNext()) {
-            next().decorate { applyNextDecorationOrCallRpc(callRpc) }
+            next().getDecoration().decorate { applyNextDecorationOrCallRpc(callRpc) }
         } else {
             callRpc()
         }
     }
 
-    protected fun <Resp> Iterator<Decoration>.applyNextDecorationOrCallStreamRpc(callRpc: () -> Flow<Resp>): Flow<Resp> {
+    protected fun <Resp> Iterator<Decoration.Provider<*>>.applyNextDecorationOrCallStreamRpc(callRpc: () -> Flow<Resp>): Flow<Resp> {
         return if (hasNext()) {
-            next().decorateStream { applyNextDecorationOrCallStreamRpc(callRpc) }
+            next().getDecoration().decorateStream { applyNextDecorationOrCallStreamRpc(callRpc) }
         } else {
             callRpc()
         }
