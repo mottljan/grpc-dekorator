@@ -4,6 +4,7 @@ package processor
 
 import api.annotation.DecoratorConfiguration
 import api.decorator.DecoratorConfig
+import api.decorator.GlobalDecoratorConfig
 import api.internal.decorator.CoroutineStubDecorator
 import com.google.devtools.ksp.getDeclaredFunctions
 import com.google.devtools.ksp.isConstructor
@@ -27,7 +28,10 @@ private const val PACKAGE_NAME = "stub.decorator.wtf" // TODO Update once known 
  * Visitor which handles [DecoratorConfiguration] annotations and generates decorator classes based
  * on the provided configuration by the annotated class.
  */
-internal class DecoratorConfigVisitor(private val environment: SymbolProcessorEnvironment) : KSVisitorVoid() {
+internal class DecoratorConfigVisitor(
+    private val environment: SymbolProcessorEnvironment,
+    private val globalDecoratorConfigResult: GlobalDecoratorConfigResult
+) : KSVisitorVoid() {
 
     private val logger = environment.logger
 
@@ -54,6 +58,7 @@ internal class DecoratorConfigVisitor(private val environment: SymbolProcessorEn
             stubSimpleName = stubSimpleName,
             stubResolvedType = stubResolvedType,
             stubDecoratorSimpleName = stubDecoratorSimpleName,
+            globalDecoratorConfigResult = globalDecoratorConfigResult
         ).generate()
         fileOutputStream.close()
     }
@@ -84,6 +89,7 @@ private class DecoratorFileContentGenerator(
     stubSimpleName: String,
     private val stubResolvedType: KSType,
     private val stubDecoratorSimpleName: String,
+    private val globalDecoratorConfigResult: GlobalDecoratorConfigResult
 ) {
     private val stubPropertyName = stubSimpleName.replaceFirstChar { it.lowercaseChar() }
 
@@ -109,17 +115,33 @@ private class DecoratorFileContentGenerator(
             ?.lowercase(Locale.getDefault())
             ?.let { "$it " }
             ?: ""
-        val decoratorConfigPropertyName = "decoratorConfig"
         val stubQualifiedName = stubResolvedType.declaration.qualifiedName!!.asString()
+
+        val decoratorConfigArgName = "decoratorConfig"
+        val decoratorConfigArgDeclaration = "$decoratorConfigArgName: ${DecoratorConfig::class.qualifiedName}<$stubQualifiedName>"
+        val stubDecorationProvidersCall = "$decoratorConfigArgName.${DecoratorConfig<*>::getDecorationProviders.name}()"
+
+        val globalDecoratorConfigArgName = "globalDecoratorConfig".orEmptyIfGlobalConfigIsMissing()
+        val globalDecoratorConfigArgDeclaration = "$globalDecoratorConfigArgName: ${globalDecoratorConfigResult.getConfigTypeQualifiedNameOrEmpty()}"
+            .orEmptyIfGlobalConfigIsMissing()
+        val globalDecorationProvidersCall = "$globalDecoratorConfigArgName.${GlobalDecoratorConfig::decorationProviders.name} + "
+            .orEmptyIfGlobalConfigIsMissing()
+
+        val propsDeclarations = if (globalDecoratorConfigArgDeclaration.isBlank()) {
+            decoratorConfigArgDeclaration
+        } else {
+            """$globalDecoratorConfigArgDeclaration,
+                $decoratorConfigArgDeclaration"""
+        }
         append(
             """
             @Suppress("DEPRECATION_ERROR")
             ${visibilityModifier}class $stubDecoratorSimpleName(
-                $decoratorConfigPropertyName: ${DecoratorConfig::class.qualifiedName}<$stubQualifiedName>
+                $propsDeclarations
             ) : ${CoroutineStubDecorator::class.qualifiedName}() {
                 
-                private val $stubPropertyName = $decoratorConfigPropertyName.${DecoratorConfig<*>::getStub.name}()
-                private val $DECORATION_PROVIDERS_PROPERTY_NAME = $decoratorConfigPropertyName.${DecoratorConfig<*>::getDecorationProviders.name}()
+                private val $stubPropertyName = $decoratorConfigArgName.${DecoratorConfig<*>::getStub.name}()
+                private val $DECORATION_PROVIDERS_PROPERTY_NAME = $globalDecorationProvidersCall$stubDecorationProvidersCall
             """.trimIndent()
         )
         append("\n")
@@ -135,6 +157,14 @@ private class DecoratorFileContentGenerator(
                 it == Modifier.INTERNAL ||
                 it == Modifier.PUBLIC
         }
+    }
+
+    private fun GlobalDecoratorConfigResult.getConfigTypeQualifiedNameOrEmpty(): String {
+        return if (this is GlobalDecoratorConfigResult.Exists) configTypeQualifiedName else ""
+    }
+
+    private fun String.orEmptyIfGlobalConfigIsMissing(): String {
+        return if (globalDecoratorConfigResult is GlobalDecoratorConfigResult.Exists) this else ""
     }
 
     private fun StringBuilder.appendDecoratingFunctions() {

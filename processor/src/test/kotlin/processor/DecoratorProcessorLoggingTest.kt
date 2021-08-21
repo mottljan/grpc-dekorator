@@ -5,6 +5,7 @@ import com.tschuchort.compiletesting.SourceFile
 import com.tschuchort.compiletesting.symbolProcessorProviders
 import org.amshove.kluent.shouldBeEqualTo
 import org.amshove.kluent.shouldContain
+import org.amshove.kluent.shouldNotContain
 import org.junit.jupiter.api.Test
 
 /**
@@ -37,6 +38,13 @@ class DecoratorProcessorLoggingTest {
         expectedCode: KotlinCompilation.ExitCode,
         expectedMessage: String
     ) {
+        testCompilation(testSourceFileContent) { result ->
+            result.exitCode shouldBeEqualTo expectedCode
+            result.messages shouldContain expectedMessage
+        }
+    }
+
+    private fun testCompilation(testSourceFileContent: String, assert: (KotlinCompilation.Result) -> Unit) {
         val testFile = SourceFile.kotlin("Test.kt", testSourceFileContent)
         val compilation = KotlinCompilation().apply {
             inheritClassPath = true
@@ -46,8 +54,7 @@ class DecoratorProcessorLoggingTest {
 
         val result = compilation.compile()
 
-        result.exitCode shouldBeEqualTo expectedCode
-        result.messages shouldContain expectedMessage
+        assert(result)
     }
 
     @Test
@@ -98,6 +105,90 @@ class DecoratorProcessorLoggingTest {
 //            expectedCode = KotlinCompilation.ExitCode.OK,
             expectedCode = KotlinCompilation.ExitCode.COMPILATION_ERROR,
             expectedMessage = DecoratorProcessor.generateNotGeneratedFunctionWarningMsg(notSupportedMethodName)
+        )
+    }
+
+    @Test
+    fun `error is logged when global decorator config annotation is used for more than one class`() {
+        // language=kotlin
+        val testFileContent = """
+            import api.annotation.GlobalDecoratorConfiguration
+            import api.decoration.Decoration
+            import api.decorator.GlobalDecoratorConfig
+
+            @GlobalDecoratorConfiguration
+            class GlobalConfig : GlobalDecoratorConfig {
+            
+                override val decorationProviders: List<Decoration.Provider<*>> = emptyList()
+            }
+
+            @GlobalDecoratorConfiguration
+            class GlobalConfig2 : GlobalDecoratorConfig {
+            
+                override val decorationProviders: List<Decoration.Provider<*>> = emptyList()
+            }
+        """.trimIndent()
+
+        testLogging(
+            testSourceFileContent = testFileContent,
+            expectedCode = KotlinCompilation.ExitCode.COMPILATION_ERROR,
+            expectedMessage = DecoratorProcessor.GLOBAL_DECORATOR_CONFIGURATION_TOO_MANY_ERROR
+        )
+    }
+
+    @Test
+    fun `error is logged when global decorator config annotation annotates property`() {
+        // language=kotlin
+        val testFileContent = """
+            import api.annotation.GlobalDecoratorConfiguration
+
+            @GlobalDecoratorConfiguration
+            val globalConfig = ""
+        """.trimIndent()
+
+        testLogging(
+            testSourceFileContent = testFileContent,
+            expectedCode = KotlinCompilation.ExitCode.COMPILATION_ERROR,
+            expectedMessage = DecoratorProcessor.GLOBAL_DECORATOR_CONFIGURATION_CLASS_KIND_ERROR
+        )
+    }
+
+    @Test
+    fun `error is logged when global decorator config annotation annotates class which does not implement required interface`() {
+        // language=kotlin
+        val testFileContent = """
+            import api.annotation.GlobalDecoratorConfiguration
+
+            @GlobalDecoratorConfiguration
+            class GlobalConfig
+        """.trimIndent()
+
+        testLogging(
+            testSourceFileContent = testFileContent,
+            expectedCode = KotlinCompilation.ExitCode.COMPILATION_ERROR,
+            expectedMessage = DecoratorProcessor.GLOBAL_DECORATOR_CONFIGURATION_IMPL_ERROR
+        )
+    }
+
+    @Test
+    fun `error is logged when global decorator config class implements property without backing field`() {
+        // language=kotlin
+        val testFileContent = """
+            import api.annotation.GlobalDecoratorConfiguration
+            import api.decoration.Decoration
+            import api.decorator.GlobalDecoratorConfig
+
+            @GlobalDecoratorConfiguration
+            class GlobalConfig : GlobalDecoratorConfig {
+            
+                override val decorationProviders: List<Decoration.Provider<*>> get() = emptyList()
+            }
+        """.trimIndent()
+
+        testLogging(
+            testSourceFileContent = testFileContent,
+            expectedCode = KotlinCompilation.ExitCode.COMPILATION_ERROR,
+            expectedMessage = DecoratorProcessor.GLOBAL_DECORATOR_CONFIGURATION_PROPERTY_ERROR
         )
     }
 }

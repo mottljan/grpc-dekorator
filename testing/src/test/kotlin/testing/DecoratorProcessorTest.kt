@@ -8,7 +8,9 @@ import kotlinx.coroutines.flow.toCollection
 import kotlinx.coroutines.test.runBlockingTest
 import org.amshove.kluent.shouldBe
 import org.amshove.kluent.shouldBeEqualTo
+import org.amshove.kluent.shouldBeGreaterThan
 import org.amshove.kluent.shouldBeLessThan
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import stub.decorator.wtf.TestCoroutineStubDecorator
 import testing.extension.CoroutineTest
@@ -16,6 +18,8 @@ import testing.testdata.InternalCoroutineStub
 import testing.testdata.TestCoroutineStub
 import testing.testdata.TestCoroutineStubDecoratorConfig
 import testing.testdata.TestCoroutineStubListener
+import testing.testdata.TestGlobalDecoratorConfig
+import testing.testdata.globalDecorationProvider
 import java.io.File
 import java.nio.file.Paths
 import kotlin.streams.toList
@@ -35,11 +39,19 @@ class DecoratorProcessorTest : CoroutineTest() {
 
     private val testDecoratorWithDecorations = createTestDecorator(listOf(firstDecorationProvider, secondDecorationProvider))
 
+    @AfterEach
+    fun afterEach() {
+        globalDecorationProvider.clearTimes()
+    }
+
     private fun createTestDecorator(decorationProviders: List<Decoration.Provider<*>>): TestCoroutineStubDecorator {
-        return TestCoroutineStubDecorator(TestCoroutineStubDecoratorConfig(
-            decorationProviders = decorationProviders,
-            testCoroutineStubListener = stubListener
-        ))
+        return TestCoroutineStubDecorator(
+            TestGlobalDecoratorConfig(),
+            TestCoroutineStubDecoratorConfig(
+                decorationProviders = decorationProviders,
+                testCoroutineStubListener = stubListener
+            )
+        )
     }
 
     @Test
@@ -104,9 +116,9 @@ class DecoratorProcessorTest : CoroutineTest() {
 
     @Test
     fun `decorations are applied in correct order for reversed order for suspend fun`() = testDispatcher.runBlockingTest {
-        val decorator = createTestDecorator(listOf(secondDecorationProvider, firstDecorationProvider))
+        val underTest = createTestDecorator(listOf(secondDecorationProvider, firstDecorationProvider))
 
-        decorator.rpc("")
+        underTest.rpc("")
 
         val firstDecorationTime = firstDecorationProvider.lastSuspendFunDecorationNanoTime
         val secondDecorationTime = secondDecorationProvider.lastSuspendFunDecorationNanoTime
@@ -183,17 +195,19 @@ class DecoratorProcessorTest : CoroutineTest() {
             createdInstancesCount++
             TestDecoration()
         }
-        val testDecorator = createTestDecorator(listOf(provider))
+        val underTest = createTestDecorator(listOf(provider))
 
-        testDecorator.rpc("")
-        testDecorator.rpc("")
+        underTest.rpc("")
+        underTest.rpc("")
 
         createdInstancesCount shouldBeEqualTo 2
     }
 
     @Test
-    fun `single instance of decoration is created right away for all RPC invocations when requested with init strategy`() = testDispatcher.runBlockingTest {
-        testOnlyOneDecorationInstanceCreation(Decoration.InitStrategy.SINGLETON)
+    fun `single instance of decoration is created right away for all RPC invocations when requested with init strategy`() {
+        testDispatcher.runBlockingTest {
+            testOnlyOneDecorationInstanceCreation(Decoration.InitStrategy.SINGLETON)
+        }
     }
 
     private suspend fun testOnlyOneDecorationInstanceCreation(initStrategy: Decoration.InitStrategy) {
@@ -202,19 +216,33 @@ class DecoratorProcessorTest : CoroutineTest() {
             createdInstancesCount++
             TestDecoration()
         }
-        val testDecorator = createTestDecorator(listOf(provider))
+        val underTest = createTestDecorator(listOf(provider))
 
         createdInstancesCount shouldBeEqualTo if (initStrategy == Decoration.InitStrategy.SINGLETON) 1 else 0
 
-        testDecorator.rpc("")
-        testDecorator.rpc("")
+        underTest.rpc("")
+        underTest.rpc("")
 
         createdInstancesCount shouldBeEqualTo 1
     }
 
     @Test
-    fun `single instance of decoration is created lazily when requested with init strategy and first RPC is called`() = testDispatcher.runBlockingTest {
-        testOnlyOneDecorationInstanceCreation(Decoration.InitStrategy.LAZY)
+    fun `single instance of decoration is created lazily when requested with init strategy and first RPC is called`() {
+        testDispatcher.runBlockingTest {
+            testOnlyOneDecorationInstanceCreation(Decoration.InitStrategy.LAZY)
+        }
+    }
+
+    @Test
+    fun `global decoration is included automatically as first stub's decoration for suspend fun`() = testDispatcher.runBlockingTest {
+        val underTest = createTestDecorator(listOf(firstDecorationProvider))
+        val timeBeforeRpcCall = System.nanoTime()
+
+        underTest.rpc("")
+
+        val globalDecorationCallTime = globalDecorationProvider.getDecoration().suspendFunDecorationNanoTime
+        globalDecorationCallTime shouldBeGreaterThan timeBeforeRpcCall
+        firstDecorationProvider.lastSuspendFunDecorationNanoTime shouldBeGreaterThan globalDecorationCallTime
     }
 
     /**
