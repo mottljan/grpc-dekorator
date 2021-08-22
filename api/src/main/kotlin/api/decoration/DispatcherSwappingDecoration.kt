@@ -21,5 +21,13 @@ class DispatcherSwappingDecoration(private val dispatcher: CoroutineDispatcher) 
     class Provider(
         initStrategy: Decoration.InitStrategy,
         private val dispatcher: CoroutineDispatcher
-    ) : Decoration.Provider<DispatcherSwappingDecoration>(initStrategy, { DispatcherSwappingDecoration(dispatcher) })
+    ) : Decoration.Provider<DispatcherSwappingDecoration>(initStrategy, { DispatcherSwappingDecoration(dispatcher) }) {
+
+        override val id = ID
+
+        companion object {
+
+            val ID = Id(Provider::class.qualifiedName!!)
+        }
+    }
 }

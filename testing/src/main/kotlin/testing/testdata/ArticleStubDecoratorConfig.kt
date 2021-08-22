@@ -15,7 +15,7 @@ internal class ArticleStubDecoratorConfig(private val channel: Channel) : Decora
         return ArticleGrpcKt.ArticleCoroutineStub(channel)
     }
 
-    override fun getDecorationProviders(): List<Decoration.Provider<*>> {
-        return listOf(DispatcherSwappingDecoration.Provider(Decoration.InitStrategy.SINGLETON, Dispatchers.IO))
+    override fun getDecorationStrategy() = Decoration.Strategy.appendAll {
+        append(DispatcherSwappingDecoration.Provider(Decoration.InitStrategy.SINGLETON, Dispatchers.IO))
     }
 }

@@ -14,7 +14,6 @@ internal class InternalCoroutineStubDecoratorConfig : DecoratorConfig<InternalCo
         return InternalCoroutineStub()
     }
 
-    override fun getDecorationProviders(): List<Decoration.Provider<*>> {
-        return emptyList()
-    }
+    // TODO solve case when you do not want to actually use any strategy to provide your own decorations, but just reuse the top ones
+    override fun getDecorationStrategy() = Decoration.Strategy.appendAll {}
 }

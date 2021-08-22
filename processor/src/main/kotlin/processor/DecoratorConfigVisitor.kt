@@ -109,30 +109,27 @@ private class DecoratorFileContentGenerator(
     }
 
     private fun StringBuilder.appendClassHeaderAndProperties() {
-        val visibilityModifier = stubResolvedType.declaration.modifiers
-            .getVisibility()
-            ?.toString()
-            ?.lowercase(Locale.getDefault())
-            ?.let { "$it " }
-            ?: ""
+        val visibilityModifier = resolveVisibilityModifierForDecorator()
         val stubQualifiedName = stubResolvedType.declaration.qualifiedName!!.asString()
 
         val decoratorConfigArgName = "decoratorConfig"
         val decoratorConfigArgDeclaration = "$decoratorConfigArgName: ${DecoratorConfig::class.qualifiedName}<$stubQualifiedName>"
-        val stubDecorationProvidersCall = "$decoratorConfigArgName.${DecoratorConfig<*>::getDecorationProviders.name}()"
 
-        val globalDecoratorConfigArgName = "globalDecoratorConfig".orEmptyIfGlobalConfigIsMissing()
+        val globalDecoratorConfigArgName = "globalDecoratorConfig"
         val globalDecoratorConfigArgDeclaration = "$globalDecoratorConfigArgName: ${globalDecoratorConfigResult.getConfigTypeQualifiedNameOrEmpty()}"
-            .orEmptyIfGlobalConfigIsMissing()
-        val globalDecorationProvidersCall = "$globalDecoratorConfigArgName.${GlobalDecoratorConfig::decorationProviders.name} + "
-            .orEmptyIfGlobalConfigIsMissing()
+        val globalDecorationProviders = if (globalDecoratorConfigResult == GlobalDecoratorConfigResult.Missing) {
+            "emptyList()"
+        } else {
+            "$globalDecoratorConfigArgName.${GlobalDecoratorConfig::decorationProviders.name}"
+        }
 
-        val propsDeclarations = if (globalDecoratorConfigArgDeclaration.isBlank()) {
+        val propsDeclarations = if (globalDecoratorConfigResult == GlobalDecoratorConfigResult.Missing) {
             decoratorConfigArgDeclaration
         } else {
             """$globalDecoratorConfigArgDeclaration,
                 $decoratorConfigArgDeclaration"""
         }
+
         append(
             """
             @Suppress("DEPRECATION_ERROR")
@@ -141,10 +138,22 @@ private class DecoratorFileContentGenerator(
             ) : ${CoroutineStubDecorator::class.qualifiedName}() {
                 
                 private val $stubPropertyName = $decoratorConfigArgName.${DecoratorConfig<*>::getStub.name}()
-                private val $DECORATION_PROVIDERS_PROPERTY_NAME = $globalDecorationProvidersCall$stubDecorationProvidersCall
+                private val $DECORATION_PROVIDERS_PROPERTY_NAME = resolveDecorationProvidersBasedOnStrategy(
+                    $globalDecorationProviders,
+                    $decoratorConfigArgName.${DecoratorConfig<*>::getDecorationStrategy.name}()
+                )
             """.trimIndent()
         )
         append("\n")
+    }
+
+    private fun resolveVisibilityModifierForDecorator(): String {
+        return stubResolvedType.declaration.modifiers
+            .getVisibility()
+            ?.toString()
+            ?.lowercase(Locale.getDefault())
+            ?.let { "$it " }
+            ?: ""
     }
 
     /**
@@ -161,10 +170,6 @@ private class DecoratorFileContentGenerator(
 
     private fun GlobalDecoratorConfigResult.getConfigTypeQualifiedNameOrEmpty(): String {
         return if (this is GlobalDecoratorConfigResult.Exists) configTypeQualifiedName else ""
-    }
-
-    private fun String.orEmptyIfGlobalConfigIsMissing(): String {
-        return if (globalDecoratorConfigResult is GlobalDecoratorConfigResult.Exists) this else ""
     }
 
     private fun StringBuilder.appendDecoratingFunctions() {

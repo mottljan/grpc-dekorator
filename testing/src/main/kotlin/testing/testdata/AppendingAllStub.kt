@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 
 @Suppress("UnusedPrivateMember")
-class TestCoroutineStub(private val testCoroutineStubListener: TestCoroutineStubListener) {
+class AppendingAllStub(private val testCoroutineStubListener: TestCoroutineStubListener) {
 
     suspend fun rpc(request: String): String {
         val returnVal = "return value"
@@ -64,23 +64,16 @@ class TestCoroutineStub(private val testCoroutineStubListener: TestCoroutineStub
 }
 
 @DecoratorConfiguration
-internal class TestCoroutineStubDecoratorConfig(
-    private val decorationProviders: List<Decoration.Provider<*>>,
+internal class AppendingAllStubDecoratorConfig(
+    private val testDecorationProviders: List<Decoration.Provider<*>>,
     private val testCoroutineStubListener: TestCoroutineStubListener
-) : DecoratorConfig<TestCoroutineStub> {
+) : DecoratorConfig<AppendingAllStub> {
 
-    override fun getStub(): TestCoroutineStub {
-        return TestCoroutineStub(testCoroutineStubListener)
+    override fun getStub(): AppendingAllStub {
+        return AppendingAllStub(testCoroutineStubListener)
     }
 
-    override fun getDecorationProviders(): List<Decoration.Provider<*>> {
-        return decorationProviders
+    override fun getDecorationStrategy() = Decoration.Strategy.appendAll {
+        testDecorationProviders.forEach { append(it) }
     }
-}
-
-interface TestCoroutineStubListener {
-
-    fun onRpcCalled(request: String, result: String)
-
-    fun onStreamingRpcCalled(request: String, result: List<String>)
 }
