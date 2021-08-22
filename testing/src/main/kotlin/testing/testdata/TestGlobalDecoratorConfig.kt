@@ -8,12 +8,18 @@ import kotlinx.coroutines.flow.Flow
 @GlobalDecoratorConfiguration
 class TestGlobalDecoratorConfig : GlobalDecoratorConfig {
 
-    override val decorationProviders = listOf(globalDecorationProvider)
+    override val decorationProviders = listOf(
+        globalDecorationAProvider,
+        globalDecorationBProvider,
+        globalDecorationCProvider
+    )
 }
 
-internal val globalDecorationProvider = GlobalDecoration.Provider()
+internal val globalDecorationAProvider = GlobalDecorationA.Provider()
+internal val globalDecorationBProvider = GlobalDecorationB.Provider()
+internal val globalDecorationCProvider = GlobalDecorationC.Provider()
 
-class GlobalDecoration : Decoration {
+abstract class GlobalDecoration : Decoration {
 
     var suspendFunDecorationNanoTime = 0L
         private set
@@ -36,10 +42,52 @@ class GlobalDecoration : Decoration {
         return rpc()
     }
 
-    class Provider : Decoration.Provider<GlobalDecoration>(Decoration.InitStrategy.SINGLETON, ::GlobalDecoration) {
+    abstract class Provider<D : GlobalDecoration>(factory: () -> D) : Decoration.Provider<D>(
+        Decoration.InitStrategy.SINGLETON,
+        factory
+    ) {
 
         fun clearTimes() {
             getDecoration().clearTimes()
+        }
+    }
+}
+
+internal class GlobalDecorationA : GlobalDecoration() {
+
+    class Provider : GlobalDecoration.Provider<GlobalDecorationA>(::GlobalDecorationA) {
+
+        override val id = ID
+
+        companion object {
+
+            val ID = Id(Provider::class.qualifiedName!!)
+        }
+    }
+}
+
+internal class GlobalDecorationB : GlobalDecoration() {
+
+    class Provider : GlobalDecoration.Provider<GlobalDecorationB>(::GlobalDecorationB) {
+
+        override val id = ID
+
+        companion object {
+
+            val ID = Id(Provider::class.qualifiedName!!)
+        }
+    }
+}
+
+internal class GlobalDecorationC : GlobalDecoration() {
+
+    class Provider : GlobalDecoration.Provider<GlobalDecorationC>(::GlobalDecorationC) {
+
+        override val id = ID
+
+        companion object {
+
+            val ID = Id(Provider::class.qualifiedName!!)
         }
     }
 }

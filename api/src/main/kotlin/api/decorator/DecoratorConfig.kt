@@ -22,5 +22,6 @@ interface DecoratorConfig<Stub> {
      * RPCs. There is no size limit. List can be even theoretically empty and RPCs will be just called
      * without any applied [Decoration.Provider]s.
      */
-    fun getDecorationProviders(): List<Decoration.Provider<*>>
+    // TODO update docs
+    fun getDecorationStrategy(): Decoration.Strategy
 }
