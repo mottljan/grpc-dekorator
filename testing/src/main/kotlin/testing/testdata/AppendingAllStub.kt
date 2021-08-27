@@ -1,6 +1,7 @@
 package testing.testdata
 
 import api.annotation.DecoratorConfiguration
+import api.annotation.RpcConfiguration
 import api.decoration.Decoration
 import api.decorator.DecoratorConfig
 import kotlinx.coroutines.flow.Flow
@@ -61,11 +62,14 @@ class AppendingAllStub(private val testCoroutineStubListener: TestCoroutineStubL
         println("streamingRpcWithMultipleArgs called")
         return flowOf(Unit)
     }
+
+    suspend fun customDecorationsRpc() {}
 }
 
 @DecoratorConfiguration
-internal class AppendingAllStubDecoratorConfig(
-    private val testDecorationProviders: List<Decoration.Provider<*>>,
+class AppendingAllStubDecoratorConfig(
+    private val stubDecorationProviders: List<Decoration.Provider<*>>,
+    private val customRpcDecorationProviders: List<Decoration.Provider<*>>,
     private val testCoroutineStubListener: TestCoroutineStubListener
 ) : DecoratorConfig<AppendingAllStub> {
 
@@ -73,7 +77,12 @@ internal class AppendingAllStubDecoratorConfig(
         return AppendingAllStub(testCoroutineStubListener)
     }
 
-    override fun getDecorationStrategy() = Decoration.Strategy.appendAll {
-        testDecorationProviders.forEach { append(it) }
+    override fun getStubDecorationStrategy() = Decoration.Strategy.appendAll {
+        stubDecorationProviders.forEach { append(it) }
+    }
+
+    @RpcConfiguration(rpcName = "customDecorationsRpc")
+    fun getCustomRpcStrategy() = Decoration.Strategy.appendAll {
+        customRpcDecorationProviders.forEach { append(it) }
     }
 }

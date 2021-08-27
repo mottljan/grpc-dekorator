@@ -83,6 +83,7 @@ class DecoratorProcessorLoggingTest {
         // language=kotlin
         val testFileContent = """
             import api.annotation.DecoratorConfiguration
+            import api.decoration.Decoration
             import api.decorator.DecoratorConfig
             
             class Stub {
@@ -93,9 +94,10 @@ class DecoratorProcessorLoggingTest {
             @DecoratorConfiguration
             class StubConfig : DecoratorConfig<Stub> {
                 
-                override fun provideStub() = Stub()
+                override fun getStub() = Stub()
     
-                override fun provideDecorations() = emptyList()
+                // TODO Refactor
+                override fun getStubDecorationStrategy() = Decoration.Strategy.appendAll {}
             }
         """.trimIndent()
 
@@ -189,6 +191,108 @@ class DecoratorProcessorLoggingTest {
             testSourceFileContent = testFileContent,
             expectedCode = KotlinCompilation.ExitCode.COMPILATION_ERROR,
             expectedMessage = DecoratorProcessor.GLOBAL_DECORATOR_CONFIGURATION_PROPERTY_ERROR
+        )
+    }
+
+    @Test
+    fun `error is logged when custom RPC decoration strategy method declares arguments`() {
+        // language=kotlin
+        val testFileContent = """
+            import api.annotation.DecoratorConfiguration
+            import api.annotation.RpcConfiguration
+            import api.decoration.Decoration
+            import api.decorator.DecoratorConfig
+
+            class Stub {
+            
+                suspend fun rpc()
+            }
+
+            @DecoratorConfiguration
+            class StubConfig : DecoratorConfig<Stub> {
+                
+                override fun getStub() = Stub()
+    
+                // TODO Refactor
+                override fun getStubDecorationStrategy() = Decoration.Strategy.appendAll {}
+
+                @RpcConfiguration("rpc")
+                fun getCustomRpcDecorationStrategy(param: String) = Decoration.Strategy.appendAll {}
+            }
+        """.trimIndent()
+
+        testLogging(
+            testSourceFileContent = testFileContent,
+            expectedCode = KotlinCompilation.ExitCode.COMPILATION_ERROR,
+            expectedMessage = DecoratorProcessor.RPC_CONFIGURATION_PARAM_ERROR
+        )
+    }
+
+    @Test
+    fun `error is logged when custom RPC decoration strategy method does not return decoration strategy`() {
+        // language=kotlin
+        val testFileContent = """
+            import api.annotation.DecoratorConfiguration
+            import api.annotation.RpcConfiguration
+            import api.decoration.Decoration
+            import api.decorator.DecoratorConfig
+
+            class Stub {
+            
+                suspend fun rpc()
+            }
+
+            @DecoratorConfiguration
+            class StubConfig : DecoratorConfig<Stub> {
+                
+                override fun getStub() = Stub()
+    
+                // TODO Refactor
+                override fun getStubDecorationStrategy() = Decoration.Strategy.appendAll {}
+
+                @RpcConfiguration("rpc")
+                fun getCustomRpcDecorationStrategy()
+            }
+        """.trimIndent()
+
+        testLogging(
+            testSourceFileContent = testFileContent,
+            expectedCode = KotlinCompilation.ExitCode.COMPILATION_ERROR,
+            expectedMessage = DecoratorProcessor.RPC_CONFIGURATION_RETURN_TYPE_ERROR
+        )
+    }
+
+    @Test
+    fun `error is logged when custom RPC decoration strategy method tries to decorate non-existing RPC`() {
+        // language=kotlin
+        val testFileContent = """
+            import api.annotation.DecoratorConfiguration
+            import api.annotation.RpcConfiguration
+            import api.decoration.Decoration
+            import api.decorator.DecoratorConfig
+
+            class Stub {
+            
+                suspend fun rpc()
+            }
+
+            @DecoratorConfiguration
+            class StubConfig : DecoratorConfig<Stub> {
+                
+                override fun getStub() = Stub()
+    
+                // TODO Refactor
+                override fun getStubDecorationStrategy() = Decoration.Strategy.appendAll {}
+
+                @RpcConfiguration("nonExistingRpc")
+                fun getCustomRpcDecorationStrategy() = Decoration.Strategy.appendAll {}
+            }
+        """.trimIndent()
+
+        testLogging(
+            testSourceFileContent = testFileContent,
+            expectedCode = KotlinCompilation.ExitCode.COMPILATION_ERROR,
+            expectedMessage = DecoratorProcessor.generateNonExistingRpcError("nonExistingRpc")
         )
     }
 }

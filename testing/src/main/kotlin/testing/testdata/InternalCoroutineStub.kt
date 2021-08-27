@@ -15,5 +15,5 @@ internal class InternalCoroutineStubDecoratorConfig : DecoratorConfig<InternalCo
     }
 
     // TODO solve case when you do not want to actually use any strategy to provide your own decorations, but just reuse the top ones
-    override fun getDecorationStrategy() = Decoration.Strategy.appendAll {}
+    override fun getStubDecorationStrategy() = Decoration.Strategy.appendAll {}
 }

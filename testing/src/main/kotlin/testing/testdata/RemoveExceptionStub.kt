@@ -16,7 +16,7 @@ internal class RemoveExceptionDecoratorConfig : DecoratorConfig<RemoveExceptionS
         return RemoveExceptionStub()
     }
 
-    override fun getDecorationStrategy() = Decoration.Strategy.custom {
+    override fun getStubDecorationStrategy() = Decoration.Strategy.custom {
         removeWithId(Decoration.Provider.Id("Non-existing ID"))
     }
 }

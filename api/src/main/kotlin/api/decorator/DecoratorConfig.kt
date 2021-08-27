@@ -23,5 +23,5 @@ interface DecoratorConfig<Stub> {
      * without any applied [Decoration.Provider]s.
      */
     // TODO update docs
-    fun getDecorationStrategy(): Decoration.Strategy
+    fun getStubDecorationStrategy(): Decoration.Strategy
 }

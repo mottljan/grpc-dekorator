@@ -3,6 +3,7 @@
 package processor
 
 import api.annotation.DecoratorConfiguration
+import api.annotation.RpcConfiguration
 import api.decorator.DecoratorConfig
 import api.decorator.GlobalDecoratorConfig
 import api.internal.decorator.CoroutineStubDecorator
@@ -13,14 +14,13 @@ import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSType
-import com.google.devtools.ksp.symbol.KSTypeReference
 import com.google.devtools.ksp.symbol.KSValueParameter
 import com.google.devtools.ksp.symbol.KSVisitorVoid
 import com.google.devtools.ksp.symbol.Modifier
 import kotlinx.coroutines.flow.Flow
 import java.io.OutputStream
-import java.lang.StringBuilder
 import java.util.Locale
+import kotlin.text.StringBuilder
 
 private const val PACKAGE_NAME = "stub.decorator.wtf" // TODO Update once known and also update packages in modules
 
@@ -40,31 +40,50 @@ internal class DecoratorConfigVisitor(
             it.resolve().declaration.qualifiedName!!.asString() == DecoratorConfig::class.qualifiedName
         }
         if (implementsRequiredInterface) {
-            generateStubDecorator(classDeclaration)
+            val stubResolvedType = classDeclaration.getAllFunctions().resolveStub()
+            val rpcConfigResults = classDeclaration.getRpcConfigResults(stubResolvedType)
+            generateStubDecorator(classDeclaration, stubResolvedType, rpcConfigResults)
         } else {
             val message = DecoratorProcessor.generateMissingInterfaceImplErrorMsg(classDeclaration.simpleName.asString())
             logger.error(message, classDeclaration)
         }
     }
 
-    private fun generateStubDecorator(classDeclaration: KSClassDeclaration) {
-        val stubResolvedType = classDeclaration.getAllFunctions().findStubReference().resolve()
-        val stubSimpleName = stubResolvedType.declaration.simpleName.asString()
-        val stubDecoratorSimpleName = "${stubSimpleName}Decorator"
+    private fun Sequence<KSFunctionDeclaration>.resolveStub(): KSType {
+        return find { it.simpleName.asString() == DecoratorConfig<*>::getStub.name }!!.returnType!!.resolve()
+    }
 
-        val fileOutputStream = createDecoratorFile(name = stubDecoratorSimpleName)
+    private fun KSClassDeclaration.getRpcConfigResults(stubResolvedType: KSType): List<RpcConfigResult> {
+        return getAllFunctions()
+            .associateWith { funDeclaration ->
+                funDeclaration.annotations.find { annotation ->
+                    val name = annotation.annotationType.resolve().declaration.qualifiedName?.asString()
+                    name == RpcConfiguration::class.qualifiedName
+                }
+            }
+            .filterNot { it.value == null }
+            .map { entry ->
+                val visitorInputData = RpcConfigurationVisitor.InputData(entry.value!!, stubResolvedType)
+                entry.key.accept(RpcConfigurationVisitor(environment), visitorInputData)
+            }
+    }
+
+    private fun generateStubDecorator(
+        decoratorConfigDeclaration: KSClassDeclaration,
+        stubResolvedType: KSType,
+        rpcConfigResults: List<RpcConfigResult>
+    ) {
+        val stubSimpleName = stubResolvedType.declaration.simpleName.asString()
+        val fileOutputStream = createDecoratorFile(name = getStubDecoratorName(stubSimpleName))
         fileOutputStream += DecoratorFileContentGenerator(
             environment = environment,
             stubSimpleName = stubSimpleName,
+            decoratorConfigDeclaration = decoratorConfigDeclaration,
             stubResolvedType = stubResolvedType,
-            stubDecoratorSimpleName = stubDecoratorSimpleName,
-            globalDecoratorConfigResult = globalDecoratorConfigResult
+            globalDecoratorConfigResult = globalDecoratorConfigResult,
+            rpcConfigResults = rpcConfigResults
         ).generate()
         fileOutputStream.close()
-    }
-
-    private fun Sequence<KSFunctionDeclaration>.findStubReference(): KSTypeReference {
-        return find { it.simpleName.asString() == DecoratorConfig<*>::getStub.name }!!.returnType!!
     }
 
     private fun createDecoratorFile(name: String): OutputStream {
@@ -84,13 +103,17 @@ internal class DecoratorConfigVisitor(
     }
 }
 
+private fun getStubDecoratorName(stubSimpleName: String) = "${stubSimpleName}Decorator"
+
 private class DecoratorFileContentGenerator(
     environment: SymbolProcessorEnvironment,
-    stubSimpleName: String,
+    private val stubSimpleName: String,
+    private val decoratorConfigDeclaration: KSClassDeclaration,
     private val stubResolvedType: KSType,
-    private val stubDecoratorSimpleName: String,
-    private val globalDecoratorConfigResult: GlobalDecoratorConfigResult
+    private val globalDecoratorConfigResult: GlobalDecoratorConfigResult,
+    private val rpcConfigResults: List<RpcConfigResult>
 ) {
+
     private val stubPropertyName = stubSimpleName.replaceFirstChar { it.lowercaseChar() }
 
     private val logger = environment.logger
@@ -110,10 +133,10 @@ private class DecoratorFileContentGenerator(
 
     private fun StringBuilder.appendClassHeaderAndProperties() {
         val visibilityModifier = resolveVisibilityModifierForDecorator()
-        val stubQualifiedName = stubResolvedType.declaration.qualifiedName!!.asString()
+        val decoratorClassName = getStubDecoratorName(stubSimpleName)
 
         val decoratorConfigArgName = "decoratorConfig"
-        val decoratorConfigArgDeclaration = "$decoratorConfigArgName: ${DecoratorConfig::class.qualifiedName}<$stubQualifiedName>"
+        val decoratorConfigArgDeclaration = "$decoratorConfigArgName: ${decoratorConfigDeclaration.qualifiedName!!.asString()}"
 
         val globalDecoratorConfigArgName = "globalDecoratorConfig"
         val globalDecoratorConfigArgDeclaration = "$globalDecoratorConfigArgName: ${globalDecoratorConfigResult.getConfigTypeQualifiedNameOrEmpty()}"
@@ -126,24 +149,27 @@ private class DecoratorFileContentGenerator(
         val propsDeclarations = if (globalDecoratorConfigResult == GlobalDecoratorConfigResult.Missing) {
             decoratorConfigArgDeclaration
         } else {
-            """$globalDecoratorConfigArgDeclaration,
-                $decoratorConfigArgDeclaration"""
+            """
+            |$globalDecoratorConfigArgDeclaration,
+            |    $decoratorConfigArgDeclaration
+            """.trimMargin()
         }
 
         append(
             """
-            @Suppress("DEPRECATION_ERROR")
-            ${visibilityModifier}class $stubDecoratorSimpleName(
-                $propsDeclarations
-            ) : ${CoroutineStubDecorator::class.qualifiedName}() {
-                
-                private val $stubPropertyName = $decoratorConfigArgName.${DecoratorConfig<*>::getStub.name}()
-                private val $DECORATION_PROVIDERS_PROPERTY_NAME = resolveDecorationProvidersBasedOnStrategy(
-                    $globalDecorationProviders,
-                    $decoratorConfigArgName.${DecoratorConfig<*>::getDecorationStrategy.name}()
-                )
-            """.trimIndent()
+            |@Suppress("DEPRECATION_ERROR", "PrivatePropertyName")
+            |${visibilityModifier}class $decoratorClassName(
+            |    $propsDeclarations
+            |) : ${CoroutineStubDecorator::class.qualifiedName}() {
+            |    
+            |    private val $stubPropertyName = $decoratorConfigArgName.${DecoratorConfig<*>::getStub.name}()
+            |    private val $STUB_DECORATION_PROVIDERS_PROPERTY_NAME = resolveDecorationProvidersBasedOnStrategy(
+            |        $globalDecorationProviders,
+            |        $decoratorConfigArgName.${DecoratorConfig<*>::getStubDecorationStrategy.name}()
+            |    )
+            """.trimMargin()
         )
+        appendRpcsDecorationProvidersIfAny(decoratorConfigArgName)
         append("\n")
     }
 
@@ -172,6 +198,25 @@ private class DecoratorFileContentGenerator(
         return if (this is GlobalDecoratorConfigResult.Exists) configTypeQualifiedName else ""
     }
 
+    private fun StringBuilder.appendRpcsDecorationProvidersIfAny(decoratorConfigArgName: String) {
+        rpcConfigResults.forEach { rpcConfigResult ->
+            append("\n")
+            val rpcProvidersPropName = getRpcDecorationProvidersPropName(rpcConfigResult.rpcName)
+            append(
+                """
+                |    private val $rpcProvidersPropName = resolveDecorationProvidersBasedOnStrategy(
+                |        $STUB_DECORATION_PROVIDERS_PROPERTY_NAME,
+                |        $decoratorConfigArgName.${rpcConfigResult.rpcConfigMethodName}()
+                |    )
+                """.trimMargin()
+            )
+        }
+    }
+
+    private fun getRpcDecorationProvidersPropName(rpcName: String): String {
+        return "$rpcName$RPC_DECORATION_PROVIDERS_PROPERTY_NAME_SUFFIX"
+    }
+
     private fun StringBuilder.appendDecoratingFunctions() {
         (stubResolvedType.declaration as KSClassDeclaration)
             .getDeclaredFunctions()
@@ -183,14 +228,14 @@ private class DecoratorFileContentGenerator(
     private fun StringBuilder.appendDecoratingFunction(originalFunctionDeclaration: KSFunctionDeclaration) {
         append("\n")
 
-        val funSimpleName = originalFunctionDeclaration.simpleName.asString()
+        val rpcName = originalFunctionDeclaration.simpleName.asString()
         val originalResolvedReturnType = originalFunctionDeclaration.returnType!!.resolve()
 
         when {
             originalFunctionDeclaration.modifiers.contains(Modifier.SUSPEND) -> {
                 appendDecoratingFunction(
                     originalFunctionDeclaration = originalFunctionDeclaration,
-                    funSimpleName = funSimpleName,
+                    rpcName = rpcName,
                     originalResolvedReturnType = originalResolvedReturnType,
                     funModifiers = "suspend",
                     iteratorHelperMethodName = "applyNextDecorationOrCallRpc"
@@ -199,14 +244,14 @@ private class DecoratorFileContentGenerator(
             originalResolvedReturnType.isFlow() -> {
                 appendDecoratingFunction(
                     originalFunctionDeclaration = originalFunctionDeclaration,
-                    funSimpleName = funSimpleName,
+                    rpcName = rpcName,
                     originalResolvedReturnType = originalResolvedReturnType,
                     funModifiers = "",
                     iteratorHelperMethodName = "applyNextDecorationOrCallStreamRpc"
                 )
             }
             else -> {
-                val message = DecoratorProcessor.generateNotGeneratedFunctionWarningMsg(funSimpleName)
+                val message = DecoratorProcessor.generateNotGeneratedFunctionWarningMsg(rpcName)
                 append("    // $message\n")
                 logger.warn(message, originalFunctionDeclaration)
             }
@@ -215,7 +260,7 @@ private class DecoratorFileContentGenerator(
 
     private fun StringBuilder.appendDecoratingFunction(
         originalFunctionDeclaration: KSFunctionDeclaration,
-        funSimpleName: String,
+        rpcName: String,
         originalResolvedReturnType: KSType,
         funModifiers: String,
         iteratorHelperMethodName: String,
@@ -225,12 +270,12 @@ private class DecoratorFileContentGenerator(
             modifiers += " "
         }
 
-        append("    ${modifiers}fun $funSimpleName")
+        append("    ${modifiers}fun $rpcName")
         appendDecoratingFunctionParameters(originalFunctionDeclaration)
         appendDecoratingFunctionReturnType(originalFunctionDeclaration, originalResolvedReturnType)
         append(" {\n")
-        append("        return $DECORATION_PROVIDERS_PROPERTY_NAME.iterator().$iteratorHelperMethodName {\n")
-        append("            $stubPropertyName.$funSimpleName")
+        append("        return ${selectCorrectProvidersProperty(rpcName)}.iterator().$iteratorHelperMethodName {\n")
+        append("            $stubPropertyName.$rpcName")
         appendOriginalFunCallParams(originalFunctionDeclaration)
         append("        }\n")
         append("    }\n")
@@ -281,6 +326,15 @@ private class DecoratorFileContentGenerator(
         }
     }
 
+    private fun selectCorrectProvidersProperty(rpcName: String): String {
+        val rpcHasCustomDecorations = rpcConfigResults.any { it.rpcName == rpcName }
+        return if (rpcHasCustomDecorations) {
+            getRpcDecorationProvidersPropName(rpcName)
+        } else {
+            STUB_DECORATION_PROVIDERS_PROPERTY_NAME
+        }
+    }
+
     private fun StringBuilder.appendOriginalFunCallParams(originalFunctionDeclaration: KSFunctionDeclaration) {
         append("(")
 
@@ -308,6 +362,7 @@ private class DecoratorFileContentGenerator(
 
     companion object {
 
-        private const val DECORATION_PROVIDERS_PROPERTY_NAME = "decorationProviders"
+        private const val STUB_DECORATION_PROVIDERS_PROPERTY_NAME = "stubDecorationProviders"
+        private const val RPC_DECORATION_PROVIDERS_PROPERTY_NAME_SUFFIX = "_decorationProviders"
     }
 }
