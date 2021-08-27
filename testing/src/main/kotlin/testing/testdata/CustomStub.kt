@@ -1,27 +1,39 @@
 package testing.testdata
 
 import api.annotation.DecoratorConfiguration
+import api.annotation.RpcConfiguration
 import api.decoration.Decoration
 import api.decorator.DecoratorConfig
 
 internal class CustomStub {
 
     suspend fun rpc() = Unit
+
+    suspend fun customRpc() = Unit
 }
 
 @DecoratorConfiguration
 internal class CustomStubDecoratorConfig(
-    private val firstProvider: Decoration.Provider<*>,
-    private val secondProvider: Decoration.Provider<*>,
+    private val replaceStubProvider: Decoration.Provider<*>,
+    private val appendStubProvider: Decoration.Provider<*>,
+    private val replaceCustomRpcProvider: Decoration.Provider<*>?,
+    private val appendCustomRpcProvider: Decoration.Provider<*>?,
 ) : DecoratorConfig<CustomStub> {
 
     override fun getStub(): CustomStub {
         return CustomStub()
     }
 
-    override fun getDecorationStrategy() = Decoration.Strategy.custom {
+    override fun getStubDecorationStrategy() = Decoration.Strategy.custom {
         removeWithId(GlobalDecorationA.Provider.ID)
-        replace(GlobalDecorationB.Provider.ID) with firstProvider
-        append(secondProvider)
+        replace(GlobalDecorationB.Provider.ID) with replaceStubProvider
+        append(appendStubProvider)
+    }
+
+    @RpcConfiguration(rpcName = "customRpc")
+    fun getCustomRpcDecorationStrategy() = Decoration.Strategy.custom {
+        removeWithId(appendStubProvider.id)
+        replaceCustomRpcProvider?.let { replace(replaceStubProvider.id) with it }
+        appendCustomRpcProvider?.let { append(it) }
     }
 }

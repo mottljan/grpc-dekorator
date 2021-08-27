@@ -18,7 +18,7 @@ internal class ReplaceExceptionDecoratorConfig : DecoratorConfig<ReplaceExceptio
         return ReplaceExceptionStub()
     }
 
-    override fun getDecorationStrategy() = Decoration.Strategy.custom {
+    override fun getStubDecorationStrategy() = Decoration.Strategy.custom {
         val provider = DispatcherSwappingDecoration.Provider(Decoration.InitStrategy.FACTORY, Dispatchers.IO)
         replace(Decoration.Provider.Id("Non-existing ID")) with provider
     }

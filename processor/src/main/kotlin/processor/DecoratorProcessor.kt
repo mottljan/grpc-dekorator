@@ -2,6 +2,7 @@ package processor
 
 import api.annotation.DecoratorConfiguration
 import api.annotation.GlobalDecoratorConfiguration
+import api.annotation.RpcConfiguration
 import api.decoration.Decoration
 import api.decorator.DecoratorConfig
 import api.decorator.GlobalDecoratorConfig
@@ -19,6 +20,7 @@ import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
 
 // TODO support for decorations of particular methods together with apply strategy
+// TODO Improve DSL (Decoration.Strategy.appendAll -> appendAll), lift strategies to top level
 // TODO provide some default strategy for decorator configs in case they care only about global decorations.
 //  make sure all combinations make sense: no decorations, just global, just stub's, global + stub's
 // TODO support for delivering exceptions to the client app (probably using GlobalDecoratorConfig),
@@ -61,13 +63,18 @@ internal class DecoratorProcessor(private val environment: SymbolProcessorEnviro
 
     companion object {
 
-        val DECORATOR_CONFIGURATION_ERROR = "Not supported declaration type annotated with ${DecoratorConfiguration::class.simpleName}"
-
         val GLOBAL_DECORATOR_CONFIGURATION_TOO_MANY_ERROR = "${GlobalDecoratorConfiguration::class.simpleName} can be used only once"
         val GLOBAL_DECORATOR_CONFIGURATION_CLASS_KIND_ERROR = "${GlobalDecoratorConfiguration::class.simpleName} must annotate class"
         val GLOBAL_DECORATOR_CONFIGURATION_IMPL_ERROR =
             "Class annotated with ${GlobalDecoratorConfiguration::class.simpleName} must implement ${GlobalDecoratorConfig::class.qualifiedName}"
         val GLOBAL_DECORATOR_CONFIGURATION_PROPERTY_ERROR = "${GlobalDecoratorConfig::decorationProviders.name} property has to have a backing field"
+
+        val DECORATOR_CONFIGURATION_ERROR = "Not supported declaration type annotated with ${DecoratorConfiguration::class.simpleName}"
+
+        val RPC_CONFIGURATION_KIND_ERROR = "${RpcConfiguration::class.simpleName} can annotate only functions"
+        val RPC_CONFIGURATION_PARAM_ERROR = "Method annotated with ${RpcConfiguration::class.simpleName} can't have any parameters"
+        val RPC_CONFIGURATION_RETURN_TYPE_ERROR =
+            "Method annotated with ${RpcConfiguration::class.simpleName} has to return ${Decoration.Strategy::class.qualifiedName}"
 
         fun generateMissingInterfaceImplErrorMsg(className: String): String {
             return "Class $className annotated with ${DecoratorConfiguration::class.simpleName} " +
@@ -76,6 +83,10 @@ internal class DecoratorProcessor(private val environment: SymbolProcessorEnviro
 
         fun generateNotGeneratedFunctionWarningMsg(funName: String): String {
             return "Decorating fun for $funName not generated! Only suspend fun or fun returning Flow is supported."
+        }
+
+        fun generateNonExistingRpcError(invalidRpcName: String): String {
+            return "Trying to decorate non-existing RPC with name: $invalidRpcName"
         }
     }
 
