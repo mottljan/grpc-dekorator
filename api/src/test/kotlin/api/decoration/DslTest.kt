@@ -1,5 +1,6 @@
 package api.decoration
 
+import api.decorator.DecoratorConfig
 import kotlinx.coroutines.flow.Flow
 import org.amshove.kluent.shouldBeEqualTo
 import org.amshove.kluent.shouldBeInstanceOf
@@ -7,18 +8,20 @@ import org.junit.jupiter.api.Test
 
 internal class DslTest {
 
+    private val decoratorConfig = TestDecoratorConfig()
+
     @Test
     fun `creates replaceAll strategy with multiple decoration providers`() {
         val firstProvider = createTestDecorationProvider()
         val secondProvider = createTestDecorationProvider()
 
-        val strategy = Decoration.Strategy.replaceAll {
+        val strategy = decoratorConfig.replaceAllStrategy {
             replaceWith(firstProvider)
             replaceWith(secondProvider)
         }
 
-        strategy shouldBeInstanceOf Decoration.Strategy.ReplaceAll::class
-        (strategy as Decoration.Strategy.ReplaceAll).providers shouldBeEqualTo listOf(firstProvider, secondProvider)
+        strategy shouldBeInstanceOf ReplaceAllStrategy::class
+        (strategy as ReplaceAllStrategy).providers shouldBeEqualTo listOf(firstProvider, secondProvider)
     }
 
     @Test
@@ -26,13 +29,13 @@ internal class DslTest {
         val firstProvider = createTestDecorationProvider()
         val secondProvider = createTestDecorationProvider()
 
-        val strategy = Decoration.Strategy.appendAll {
+        val strategy = decoratorConfig.appendAllStrategy {
             append(firstProvider)
             append(secondProvider)
         }
 
-        strategy shouldBeInstanceOf Decoration.Strategy.AppendAll::class
-        (strategy as Decoration.Strategy.AppendAll).providers shouldBeEqualTo listOf(firstProvider, secondProvider)
+        strategy shouldBeInstanceOf AppendAllStrategy::class
+        (strategy as AppendAllStrategy).providers shouldBeEqualTo listOf(firstProvider, secondProvider)
     }
 
     @Test
@@ -50,7 +53,7 @@ internal class DslTest {
         val secondAppendProvider = createTestDecorationProvider()
 
         // Act
-        val strategy = Decoration.Strategy.custom {
+        val strategy = decoratorConfig.customStrategy {
             removeWithId(firstRemoveId)
             replace(firstReplaceId) with firstReplaceProvider
             append(firstAppendProvider)
@@ -61,24 +64,24 @@ internal class DslTest {
         }
 
         // Assert
-        strategy shouldBeInstanceOf Decoration.Strategy.Custom::class
+        strategy shouldBeInstanceOf CustomStrategy::class
 
-        val actions = (strategy as Decoration.Strategy.Custom).actions
-        (actions[0] as Decoration.Strategy.Custom.Action.Remove).providerId shouldBeEqualTo firstRemoveId
+        val actions = (strategy as CustomStrategy).actions
+        (actions[0] as CustomStrategy.Action.Remove).providerId shouldBeEqualTo firstRemoveId
 
-        val firstReplaceAction = (actions[1] as Decoration.Strategy.Custom.Action.Replace)
+        val firstReplaceAction = (actions[1] as CustomStrategy.Action.Replace)
         firstReplaceAction.oldProviderId shouldBeEqualTo firstReplaceId
         firstReplaceAction.newProvider shouldBeEqualTo firstReplaceProvider
 
-        (actions[2] as Decoration.Strategy.Custom.Action.Append).provider shouldBeEqualTo firstAppendProvider
+        (actions[2] as CustomStrategy.Action.Append).provider shouldBeEqualTo firstAppendProvider
 
-        (actions[3] as Decoration.Strategy.Custom.Action.Remove).providerId shouldBeEqualTo secondRemoveId
+        (actions[3] as CustomStrategy.Action.Remove).providerId shouldBeEqualTo secondRemoveId
 
-        val secondReplaceAction = (actions[4] as Decoration.Strategy.Custom.Action.Replace)
+        val secondReplaceAction = (actions[4] as CustomStrategy.Action.Replace)
         secondReplaceAction.oldProviderId shouldBeEqualTo secondReplaceId
         secondReplaceAction.newProvider shouldBeEqualTo secondReplaceProvider
 
-        (actions[5] as Decoration.Strategy.Custom.Action.Append).provider shouldBeEqualTo secondAppendProvider
+        (actions[5] as CustomStrategy.Action.Append).provider shouldBeEqualTo secondAppendProvider
 
     }
 }
@@ -100,4 +103,9 @@ private class TestDecoration : Decoration {
             val ID = Id(Provider::class.qualifiedName!!)
         }
     }
+}
+
+private class TestDecoratorConfig : DecoratorConfig<Unit> {
+
+    override fun getStub() = Unit
 }

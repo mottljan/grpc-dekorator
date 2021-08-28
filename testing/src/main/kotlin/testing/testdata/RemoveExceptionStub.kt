@@ -2,6 +2,7 @@ package testing.testdata
 
 import api.annotation.DecoratorConfiguration
 import api.decoration.Decoration
+import api.decoration.customStrategy
 import api.decorator.DecoratorConfig
 
 internal class RemoveExceptionStub {
@@ -16,7 +17,7 @@ internal class RemoveExceptionDecoratorConfig : DecoratorConfig<RemoveExceptionS
         return RemoveExceptionStub()
     }
 
-    override fun getStubDecorationStrategy() = Decoration.Strategy.custom {
+    override fun getStubDecorationStrategy() = customStrategy {
         removeWithId(Decoration.Provider.Id("Non-existing ID"))
     }
 }

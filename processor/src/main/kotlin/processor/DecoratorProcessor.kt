@@ -19,10 +19,6 @@ import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
 
-// TODO support for decorations of particular methods together with apply strategy
-// TODO Improve DSL (Decoration.Strategy.appendAll -> appendAll), lift strategies to top level
-// TODO provide some default strategy for decorator configs in case they care only about global decorations.
-//  make sure all combinations make sense: no decorations, just global, just stub's, global + stub's
 // TODO support for delivering exceptions to the client app (probably using GlobalDecoratorConfig),
 //  these should be thrown when you try to remove or replace decoration which is not in the global config
 

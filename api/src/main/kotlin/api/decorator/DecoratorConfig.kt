@@ -2,6 +2,7 @@ package api.decorator
 
 import api.annotation.DecoratorConfiguration
 import api.decoration.Decoration
+import api.decoration.noChangesStrategy
 
 /**
  * Specifies configuration of the decorator which will be generated. Classes implementing this
@@ -23,5 +24,5 @@ interface DecoratorConfig<Stub> {
      * without any applied [Decoration.Provider]s.
      */
     // TODO update docs
-    fun getStubDecorationStrategy(): Decoration.Strategy
+    fun getStubDecorationStrategy(): Decoration.Strategy = noChangesStrategy()
 }

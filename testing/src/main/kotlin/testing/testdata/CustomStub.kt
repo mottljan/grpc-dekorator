@@ -3,6 +3,7 @@ package testing.testdata
 import api.annotation.DecoratorConfiguration
 import api.annotation.RpcConfiguration
 import api.decoration.Decoration
+import api.decoration.customStrategy
 import api.decorator.DecoratorConfig
 
 internal class CustomStub {
@@ -24,14 +25,14 @@ internal class CustomStubDecoratorConfig(
         return CustomStub()
     }
 
-    override fun getStubDecorationStrategy() = Decoration.Strategy.custom {
+    override fun getStubDecorationStrategy() = customStrategy {
         removeWithId(GlobalDecorationA.Provider.ID)
         replace(GlobalDecorationB.Provider.ID) with replaceStubProvider
         append(appendStubProvider)
     }
 
     @RpcConfiguration(rpcName = "customRpc")
-    fun getCustomRpcDecorationStrategy() = Decoration.Strategy.custom {
+    fun getCustomRpcDecorationStrategy() = customStrategy {
         removeWithId(appendStubProvider.id)
         replaceCustomRpcProvider?.let { replace(replaceStubProvider.id) with it }
         appendCustomRpcProvider?.let { append(it) }

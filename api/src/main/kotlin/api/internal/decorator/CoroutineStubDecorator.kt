@@ -1,6 +1,9 @@
 package api.internal.decorator
 
+import api.decoration.AppendAllStrategy
+import api.decoration.CustomStrategy
 import api.decoration.Decoration
+import api.decoration.ReplaceAllStrategy
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -33,14 +36,17 @@ abstract class CoroutineStubDecorator {
         strategy: Decoration.Strategy
     ): List<Decoration.Provider<*>> {
         return when (strategy) {
-            is Decoration.Strategy.AppendAll -> globalProviders + strategy.providers
-            is Decoration.Strategy.ReplaceAll -> strategy.providers
-            is Decoration.Strategy.Custom -> resolveProvidersBasedOnCustomStrategy(strategy, globalProviders)
+            is AppendAllStrategy -> globalProviders + strategy.providers
+            is ReplaceAllStrategy -> strategy.providers
+            is CustomStrategy -> resolveProvidersBasedOnCustomStrategy(strategy, globalProviders)
+            // when is exhaustive without else branch, however at compile time it fails that it is not.
+            // Probably caused by sealed class descendants not nested inside sealed class.
+            else -> throw IllegalStateException("Unsupported strategy")
         }
     }
 
     private fun resolveProvidersBasedOnCustomStrategy(
-        strategy: Decoration.Strategy.Custom,
+        strategy: CustomStrategy,
         globalProviders: List<Decoration.Provider<*>>
     ): List<Decoration.Provider<*>> {
         val resolvedProviders = globalProviders.toMutableList()
@@ -48,15 +54,15 @@ abstract class CoroutineStubDecorator {
         return resolvedProviders
     }
 
-    private fun MutableList<Decoration.Provider<*>>.modifyBasedOnAction(action: Decoration.Strategy.Custom.Action) {
+    private fun MutableList<Decoration.Provider<*>>.modifyBasedOnAction(action: CustomStrategy.Action) {
         when (action) {
-            is Decoration.Strategy.Custom.Action.Remove -> {
+            is CustomStrategy.Action.Remove -> {
                 val wasRemoved = removeIf { it.id == action.providerId }
                 if (!wasRemoved) {
                     throwIllegalStrategyActionException(actionName = "remove", action.providerId)
                 }
             }
-            is Decoration.Strategy.Custom.Action.Replace -> {
+            is CustomStrategy.Action.Replace -> {
                 var wasReplaced = false
                 replaceAll { provider ->
                     if (provider.id == action.oldProviderId) {
@@ -70,7 +76,7 @@ abstract class CoroutineStubDecorator {
                     throwIllegalStrategyActionException(actionName = "replace", action.oldProviderId)
                 }
             }
-            is Decoration.Strategy.Custom.Action.Append -> {
+            is CustomStrategy.Action.Append -> {
                 this += action.provider
             }
         }

@@ -95,9 +95,6 @@ class DecoratorProcessorLoggingTest {
             class StubConfig : DecoratorConfig<Stub> {
                 
                 override fun getStub() = Stub()
-    
-                // TODO Refactor
-                override fun getStubDecorationStrategy() = Decoration.Strategy.appendAll {}
             }
         """.trimIndent()
 
@@ -201,6 +198,7 @@ class DecoratorProcessorLoggingTest {
             import api.annotation.DecoratorConfiguration
             import api.annotation.RpcConfiguration
             import api.decoration.Decoration
+            import api.decoration.noChangesStrategy
             import api.decorator.DecoratorConfig
 
             class Stub {
@@ -212,12 +210,9 @@ class DecoratorProcessorLoggingTest {
             class StubConfig : DecoratorConfig<Stub> {
                 
                 override fun getStub() = Stub()
-    
-                // TODO Refactor
-                override fun getStubDecorationStrategy() = Decoration.Strategy.appendAll {}
 
                 @RpcConfiguration("rpc")
-                fun getCustomRpcDecorationStrategy(param: String) = Decoration.Strategy.appendAll {}
+                fun getCustomRpcDecorationStrategy(param: String) = noChangesStrategy()
             }
         """.trimIndent()
 
@@ -246,9 +241,7 @@ class DecoratorProcessorLoggingTest {
             class StubConfig : DecoratorConfig<Stub> {
                 
                 override fun getStub() = Stub()
-    
-                // TODO Refactor
-                override fun getStubDecorationStrategy() = Decoration.Strategy.appendAll {}
+
 
                 @RpcConfiguration("rpc")
                 fun getCustomRpcDecorationStrategy()
@@ -268,7 +261,8 @@ class DecoratorProcessorLoggingTest {
         val testFileContent = """
             import api.annotation.DecoratorConfiguration
             import api.annotation.RpcConfiguration
-            import api.decoration.Decoration
+            import api.decoration.Decoration 
+            import api.decoration.noChangesStrategy
             import api.decorator.DecoratorConfig
 
             class Stub {
@@ -280,12 +274,9 @@ class DecoratorProcessorLoggingTest {
             class StubConfig : DecoratorConfig<Stub> {
                 
                 override fun getStub() = Stub()
-    
-                // TODO Refactor
-                override fun getStubDecorationStrategy() = Decoration.Strategy.appendAll {}
 
                 @RpcConfiguration("nonExistingRpc")
-                fun getCustomRpcDecorationStrategy() = Decoration.Strategy.appendAll {}
+                fun getCustomRpcDecorationStrategy() = noChangesStrategy()
             }
         """.trimIndent()
 
