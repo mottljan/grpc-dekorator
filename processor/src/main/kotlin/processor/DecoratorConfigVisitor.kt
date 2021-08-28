@@ -138,7 +138,7 @@ private class DecoratorFileContentGenerator(
         val decoratorConfigArgName = "decoratorConfig"
         val decoratorConfigArgDeclaration = "$decoratorConfigArgName: ${decoratorConfigDeclaration.qualifiedName!!.asString()}"
 
-        val globalDecoratorConfigArgName = "globalDecoratorConfig"
+        val globalDecoratorConfigArgName = "globalDecoratorConfig".orEmptyIfGlobalConfigMissing()
         val globalDecoratorConfigArgDeclaration = "$globalDecoratorConfigArgName: ${globalDecoratorConfigResult.getConfigTypeQualifiedNameOrEmpty()}"
         val globalDecorationProviders = if (globalDecoratorConfigResult == GlobalDecoratorConfigResult.Missing) {
             "emptyList()"
@@ -160,7 +160,7 @@ private class DecoratorFileContentGenerator(
             |@Suppress("DEPRECATION_ERROR", "PrivatePropertyName")
             |${visibilityModifier}class $decoratorClassName(
             |    $propsDeclarations
-            |) : ${CoroutineStubDecorator::class.qualifiedName}() {
+            |) : ${CoroutineStubDecorator::class.qualifiedName}($globalDecoratorConfigArgName) {
             |    
             |    private val $stubPropertyName = $decoratorConfigArgName.${DecoratorConfig<*>::getStub.name}()
             |    private val $STUB_DECORATION_PROVIDERS_PROPERTY_NAME = resolveDecorationProvidersBasedOnStrategy(
@@ -192,6 +192,10 @@ private class DecoratorFileContentGenerator(
                 it == Modifier.INTERNAL ||
                 it == Modifier.PUBLIC
         }
+    }
+
+    private fun String.orEmptyIfGlobalConfigMissing(): String {
+        return if (globalDecoratorConfigResult is GlobalDecoratorConfigResult.Exists) this else ""
     }
 
     private fun GlobalDecoratorConfigResult.getConfigTypeQualifiedNameOrEmpty(): String {

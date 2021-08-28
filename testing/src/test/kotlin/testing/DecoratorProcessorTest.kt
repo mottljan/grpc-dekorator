@@ -10,19 +10,19 @@ import org.amshove.kluent.shouldBe
 import org.amshove.kluent.shouldBeEqualTo
 import org.amshove.kluent.shouldBeGreaterThan
 import org.amshove.kluent.shouldBeLessThan
+import org.amshove.kluent.shouldNotBe
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.assertThrows
 import stub.decorator.wtf.AppendingAllStubDecorator
 import stub.decorator.wtf.CustomStubDecorator
 import stub.decorator.wtf.RemoveExceptionStubDecorator
 import stub.decorator.wtf.ReplaceExceptionStubDecorator
 import stub.decorator.wtf.ReplacingAllStubDecorator
 import testing.extension.CoroutineTest
-import testing.testdata.InternalCoroutineStub
 import testing.testdata.AppendingAllStub
 import testing.testdata.AppendingAllStubDecoratorConfig
 import testing.testdata.CustomStubDecoratorConfig
+import testing.testdata.InternalCoroutineStub
 import testing.testdata.RemoveExceptionDecoratorConfig
 import testing.testdata.ReplaceExceptionDecoratorConfig
 import testing.testdata.ReplacingAllStubDecoratorConfig
@@ -54,6 +54,7 @@ class DecoratorProcessorTest : CoroutineTest() {
     fun afterEach() {
         globalDecorationAProvider.clearTimes()
         globalDecorationBProvider.clearTimes()
+        globalDecorationCProvider.clearTimes()
     }
 
     private fun createAppendingAllDecorator(
@@ -61,13 +62,17 @@ class DecoratorProcessorTest : CoroutineTest() {
         customRpcDecorationProviders: List<Decoration.Provider<*>> = emptyList()
     ): AppendingAllStubDecorator {
         return AppendingAllStubDecorator(
-            TestGlobalDecoratorConfig(),
+            createGlobalDecoratorConfig(),
             AppendingAllStubDecoratorConfig(
                 stubDecorationProviders = stubDecorationProviders,
                 customRpcDecorationProviders = customRpcDecorationProviders,
                 testCoroutineStubListener = stubListener
             )
         )
+    }
+
+    private fun createGlobalDecoratorConfig(onProcessException: (Exception) -> Unit = {}): TestGlobalDecoratorConfig {
+        return TestGlobalDecoratorConfig(onProcessException)
     }
 
     @Test
@@ -294,7 +299,7 @@ class DecoratorProcessorTest : CoroutineTest() {
         anotherCustomRpcDecorationProviders: List<Decoration.Provider<*>> = emptyList(),
     ): ReplacingAllStubDecorator {
         return ReplacingAllStubDecorator(
-            TestGlobalDecoratorConfig(),
+            createGlobalDecoratorConfig(),
             ReplacingAllStubDecoratorConfig(
                 stubDecorationProviders = stubDecorationProviders,
                 customRpcDecorationProviders = customRpcDecorationProviders,
@@ -354,7 +359,7 @@ class DecoratorProcessorTest : CoroutineTest() {
         appendCustomRpcProvider: Decoration.Provider<*>? = null,
     ): CustomStubDecorator {
         return CustomStubDecorator(
-            TestGlobalDecoratorConfig(),
+            createGlobalDecoratorConfig(),
             CustomStubDecoratorConfig(
                 replaceStubProvider = replaceStubProvider,
                 appendStubProvider = appendStubProvider,
@@ -365,16 +370,25 @@ class DecoratorProcessorTest : CoroutineTest() {
     }
 
     @Test
-    fun `throws exception when custom strategy tries to remove provider which does not exist`() = testDispatcher.runBlockingTest {
-        assertThrows<IllegalStateException> {
-            RemoveExceptionStubDecorator(TestGlobalDecoratorConfig(), RemoveExceptionDecoratorConfig())
+    fun `throws exception when custom strategy tries to remove provider which does not exist`() {
+        testExceptionThrowing { globalDecoratorConfig ->
+            RemoveExceptionStubDecorator(globalDecoratorConfig, RemoveExceptionDecoratorConfig())
         }
     }
 
+    private fun testExceptionThrowing(act: (TestGlobalDecoratorConfig) -> Unit) {
+        var actualException: Exception? = null
+        val globalDecoratorConfig = createGlobalDecoratorConfig { actualException = it }
+
+        act(globalDecoratorConfig)
+
+        actualException shouldNotBe null
+    }
+
     @Test
-    fun `throws exception when custom strategy tries to replace provider which does not exist`() = testDispatcher.runBlockingTest {
-        assertThrows<IllegalStateException> {
-            ReplaceExceptionStubDecorator(TestGlobalDecoratorConfig(), ReplaceExceptionDecoratorConfig())
+    fun `throws exception when custom strategy tries to replace provider which does not exist`() {
+        testExceptionThrowing { globalDecoratorConfig ->
+            ReplaceExceptionStubDecorator(globalDecoratorConfig, ReplaceExceptionDecoratorConfig())
         }
     }
 

@@ -19,9 +19,9 @@ import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
 
-// TODO support for delivering exceptions to the client app (probably using GlobalDecoratorConfig),
-//  these should be thrown when you try to remove or replace decoration which is not in the global config
-
+// TODO Write doc comments
+// TODO Revalidate whole solution (API) / try on real app (FN)
+// TODO Write README
 // TODO Solve package name
 
 // TODO testing with kotlin compile testing is not possible due to this error https://github.com/google/ksp/issues/427

@@ -4,6 +4,7 @@ import api.decoration.AppendAllStrategy
 import api.decoration.CustomStrategy
 import api.decoration.Decoration
 import api.decoration.ReplaceAllStrategy
+import api.decorator.GlobalDecoratorConfig
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -12,7 +13,7 @@ import kotlinx.coroutines.flow.Flow
  * it can not be internal and must be public.
  */
 @Deprecated("Should be used only by generated decorators!", level = DeprecationLevel.HIDDEN)
-abstract class CoroutineStubDecorator {
+abstract class CoroutineStubDecorator(private val globalDecoratorConfig: GlobalDecoratorConfig? = null) {
 
     protected suspend fun <Resp> Iterator<Decoration.Provider<*>>.applyNextDecorationOrCallRpc(callRpc: suspend () -> Resp): Resp {
         return if (hasNext()) {
@@ -30,15 +31,14 @@ abstract class CoroutineStubDecorator {
         }
     }
 
-    // TODO Rename globalProviders to something else when this is used for particular RPC decoration resolution too
     protected fun resolveDecorationProvidersBasedOnStrategy(
-        globalProviders: List<Decoration.Provider<*>>,
+        higherLevelProviders: List<Decoration.Provider<*>>,
         strategy: Decoration.Strategy
     ): List<Decoration.Provider<*>> {
         return when (strategy) {
-            is AppendAllStrategy -> globalProviders + strategy.providers
+            is AppendAllStrategy -> higherLevelProviders + strategy.providers
             is ReplaceAllStrategy -> strategy.providers
-            is CustomStrategy -> resolveProvidersBasedOnCustomStrategy(strategy, globalProviders)
+            is CustomStrategy -> resolveProvidersBasedOnCustomStrategy(higherLevelProviders, strategy)
             // when is exhaustive without else branch, however at compile time it fails that it is not.
             // Probably caused by sealed class descendants not nested inside sealed class.
             else -> throw IllegalStateException("Unsupported strategy")
@@ -46,10 +46,10 @@ abstract class CoroutineStubDecorator {
     }
 
     private fun resolveProvidersBasedOnCustomStrategy(
-        strategy: CustomStrategy,
-        globalProviders: List<Decoration.Provider<*>>
+        higherLevelProviders: List<Decoration.Provider<*>>,
+        strategy: CustomStrategy
     ): List<Decoration.Provider<*>> {
-        val resolvedProviders = globalProviders.toMutableList()
+        val resolvedProviders = higherLevelProviders.toMutableList()
         strategy.actions.forEach { resolvedProviders.modifyBasedOnAction(it) }
         return resolvedProviders
     }
@@ -59,7 +59,7 @@ abstract class CoroutineStubDecorator {
             is CustomStrategy.Action.Remove -> {
                 val wasRemoved = removeIf { it.id == action.providerId }
                 if (!wasRemoved) {
-                    throwIllegalStrategyActionException(actionName = "remove", action.providerId)
+                    deliverIllegalStrategyActionException(actionName = "remove", action.providerId)
                 }
             }
             is CustomStrategy.Action.Replace -> {
@@ -73,7 +73,7 @@ abstract class CoroutineStubDecorator {
                     }
                 }
                 if (!wasReplaced) {
-                    throwIllegalStrategyActionException(actionName = "replace", action.oldProviderId)
+                    deliverIllegalStrategyActionException(actionName = "replace", action.oldProviderId)
                 }
             }
             is CustomStrategy.Action.Append -> {
@@ -82,8 +82,9 @@ abstract class CoroutineStubDecorator {
         }
     }
 
-    private fun throwIllegalStrategyActionException(actionName: String, providerId: Decoration.Provider.Id): Nothing {
-        throw IllegalStateException("Tried to $actionName ${Decoration.Provider::class.simpleName} " +
+    private fun deliverIllegalStrategyActionException(actionName: String, providerId: Decoration.Provider.Id) {
+        val exception = IllegalStateException("Tried to $actionName ${Decoration.Provider::class.simpleName} " +
             "with id \"$providerId\", but it was not found")
+        globalDecoratorConfig?.handleException(exception) ?: throw exception
     }
 }
