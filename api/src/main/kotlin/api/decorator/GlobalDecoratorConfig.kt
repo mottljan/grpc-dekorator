@@ -7,5 +7,9 @@ import api.decoration.Decoration
  */
 interface GlobalDecoratorConfig {
 
-    val decorationProviders: List<Decoration.Provider<*>>
+    val decorationProviders: List<Decoration.Provider<*>> get() = emptyList()
+
+    fun handleException(exception: Exception) {
+        throw exception
+    }
 }

@@ -6,13 +6,17 @@ import api.decorator.GlobalDecoratorConfig
 import kotlinx.coroutines.flow.Flow
 
 @GlobalDecoratorConfiguration
-class TestGlobalDecoratorConfig : GlobalDecoratorConfig {
+class TestGlobalDecoratorConfig(private val onHandleException: (Exception) -> Unit) : GlobalDecoratorConfig {
 
     override val decorationProviders = listOf(
         globalDecorationAProvider,
         globalDecorationBProvider,
         globalDecorationCProvider
     )
+
+    override fun handleException(exception: Exception) {
+        onHandleException(exception)
+    }
 }
 
 internal val globalDecorationAProvider = GlobalDecorationA.Provider()
