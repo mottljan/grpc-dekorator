@@ -3,6 +3,7 @@ package testing.testdata
 import api.annotation.DecoratorConfiguration
 import api.decoration.Decoration
 import api.decoration.DispatcherSwappingDecoration
+import api.decoration.appendAllStrategy
 import api.decorator.DecoratorConfig
 import io.grpc.Channel
 import kotlinx.coroutines.Dispatchers
@@ -15,7 +16,7 @@ class ArticleStubDecoratorConfig(private val channel: Channel) : DecoratorConfig
         return ArticleGrpcKt.ArticleCoroutineStub(channel)
     }
 
-    override fun getStubDecorationStrategy() = Decoration.Strategy.appendAll {
+    override fun getStubDecorationStrategy() = appendAllStrategy {
         append(DispatcherSwappingDecoration.Provider(Decoration.InitStrategy.SINGLETON, Dispatchers.IO))
     }
 }

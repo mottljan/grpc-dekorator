@@ -3,6 +3,7 @@ package testing.testdata
 import api.annotation.DecoratorConfiguration
 import api.annotation.RpcConfiguration
 import api.decoration.Decoration
+import api.decoration.replaceAllStrategy
 import api.decorator.DecoratorConfig
 
 internal class ReplacingAllStub {
@@ -25,17 +26,17 @@ internal class ReplacingAllStubDecoratorConfig(
         return ReplacingAllStub()
     }
 
-    override fun getStubDecorationStrategy() = Decoration.Strategy.replaceAll {
+    override fun getStubDecorationStrategy() = replaceAllStrategy {
         stubDecorationProviders.forEach { replaceWith(it) }
     }
 
     @RpcConfiguration(rpcName = "customRpc")
-    fun getCustomRpcStrategy() = Decoration.Strategy.replaceAll {
+    fun getCustomRpcStrategy() = replaceAllStrategy {
         customRpcDecorationProviders.forEach { replaceWith(it) }
     }
 
     @RpcConfiguration(rpcName = "anotherCustomRpc")
-    fun getAnotherCustomRpcStrategy() = Decoration.Strategy.replaceAll {
+    fun getAnotherCustomRpcStrategy() = replaceAllStrategy {
         anotherCustomRpcDecorationProviders.forEach { replaceWith(it) }
     }
 }

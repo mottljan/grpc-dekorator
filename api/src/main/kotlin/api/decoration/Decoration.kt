@@ -1,5 +1,6 @@
 package api.decoration
 
+import api.decorator.DecoratorConfig
 import kotlinx.coroutines.flow.Flow
 import java.lang.IllegalStateException
 
@@ -76,83 +77,11 @@ interface Decoration {
     }
 
     // TODO docs
-    sealed class Strategy {
-
-        data class ReplaceAll(val providers: List<Provider<*>>) : Strategy()
-
-        data class AppendAll(val providers: List<Provider<*>>) : Strategy()
-
-        data class Custom(val actions: List<Action>) : Strategy() {
-
-            sealed interface Action {
-
-                data class Remove(val providerId: Provider.Id) : Action
-
-                data class Replace(val oldProviderId: Provider.Id, val newProvider: Provider<*>) : Action
-
-                data class Append(val provider: Provider<*>) : Action
-            }
-        }
-
-        companion object {
-
-            fun replaceAll(block: ReplaceAllStrategyDefinition.() -> Unit): Strategy {
-                val decorationProviders = ReplaceAllStrategyDefinition().apply(block).decorationProviders
-                return ReplaceAll(decorationProviders)
-            }
-
-            fun appendAll(block: AppendAllStrategyDefinition.() -> Unit): Strategy {
-                val decorationProviders = AppendAllStrategyDefinition().apply(block).decorationProviders
-                return AppendAll(decorationProviders)
-            }
-
-            fun custom(block: CustomStrategyDefinition.() -> Unit): Strategy {
-                val actions = CustomStrategyDefinition().apply(block).actions
-                return Custom(actions)
-            }
-        }
-    }
+    sealed class Strategy
 }
 
-abstract class BaseAllStrategyDefinition internal constructor() {
-
-    protected val _decorationProviders = mutableListOf<Decoration.Provider<*>>()
-    val decorationProviders: List<Decoration.Provider<*>> get() = _decorationProviders
-}
-
-class ReplaceAllStrategyDefinition internal constructor() : BaseAllStrategyDefinition() {
-
-    fun replaceWith(decorationProvider: Decoration.Provider<*>) {
-        _decorationProviders += decorationProvider
-    }
-}
-
-class AppendAllStrategyDefinition internal constructor() : BaseAllStrategyDefinition() {
-
-    fun append(decorationProvider: Decoration.Provider<*>) {
-        _decorationProviders += decorationProvider
-    }
-}
-
-class CustomStrategyDefinition internal constructor()  {
-
-    private val _actions = mutableListOf<Decoration.Strategy.Custom.Action>()
-    val actions: List<Decoration.Strategy.Custom.Action> get() = _actions
-
-    fun removeWithId(providerId: Decoration.Provider.Id) {
-        _actions += Decoration.Strategy.Custom.Action.Remove(providerId)
-    }
-
-    fun replace(providerId: Decoration.Provider.Id) = Replace(providerId)
-
-    fun append(decorationProvider: Decoration.Provider<*>) {
-        _actions += Decoration.Strategy.Custom.Action.Append(decorationProvider)
-    }
-
-    inner class Replace internal constructor(private val providerId: Decoration.Provider.Id) {
-
-        infix fun with(decorationProvider: Decoration.Provider<*>) {
-            _actions += Decoration.Strategy.Custom.Action.Replace(providerId, decorationProvider)
-        }
-    }
+// Extension to limit the scope where this can be used
+@Suppress("unused")
+fun DecoratorConfig<*>.noChangesStrategy(): Decoration.Strategy {
+    return appendAllStrategy {}
 }

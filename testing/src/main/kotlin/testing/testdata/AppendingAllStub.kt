@@ -3,6 +3,7 @@ package testing.testdata
 import api.annotation.DecoratorConfiguration
 import api.annotation.RpcConfiguration
 import api.decoration.Decoration
+import api.decoration.appendAllStrategy
 import api.decorator.DecoratorConfig
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -77,12 +78,12 @@ class AppendingAllStubDecoratorConfig(
         return AppendingAllStub(testCoroutineStubListener)
     }
 
-    override fun getStubDecorationStrategy() = Decoration.Strategy.appendAll {
+    override fun getStubDecorationStrategy() = appendAllStrategy {
         stubDecorationProviders.forEach { append(it) }
     }
 
     @RpcConfiguration(rpcName = "customDecorationsRpc")
-    fun getCustomRpcStrategy() = Decoration.Strategy.appendAll {
+    fun getCustomRpcStrategy() = appendAllStrategy {
         customRpcDecorationProviders.forEach { append(it) }
     }
 }
