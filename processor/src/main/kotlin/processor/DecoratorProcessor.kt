@@ -19,8 +19,8 @@ import com.google.devtools.ksp.symbol.KSFunctionDeclaration
 import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
 
-// TODO Write doc comments
 // TODO Revalidate whole solution (API) / try on real app (FN)
+// TODO Think about lib name
 // TODO Write README
 // TODO Solve package name
 

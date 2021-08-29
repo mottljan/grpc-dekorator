@@ -11,7 +11,7 @@ import com.google.devtools.ksp.symbol.KSType
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
 
 /**
- * TODO add class description
+ * Processes [RpcConfiguration] annotation and returns [RpcConfigResult]
  */
 internal class RpcConfigurationVisitor(
     environment: SymbolProcessorEnvironment
@@ -75,6 +75,11 @@ internal class RpcConfigurationVisitor(
     data class InputData(val rpcConfigAnnotation: KSAnnotation, val stubResolvedType: KSType)
 }
 
+/**
+ * Contains result data gather from processing [RpcConfiguration] annotation.
+ * [rpcName] is the name of the RPC related to this configuration and [rpcConfigMethodName] is the
+ * name of the method annotated with [RpcConfiguration].
+ */
 data class RpcConfigResult(val rpcName: String, val rpcConfigMethodName: String)
 
 internal class InvalidRpcConfigurationException : Exception("RPC configuration is invalid")

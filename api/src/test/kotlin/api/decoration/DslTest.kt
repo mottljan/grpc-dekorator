@@ -54,11 +54,11 @@ internal class DslTest {
 
         // Act
         val strategy = decoratorConfig.customStrategy {
-            removeWithId(firstRemoveId)
+            removeProviderWithId(firstRemoveId)
             replace(firstReplaceId) with firstReplaceProvider
             append(firstAppendProvider)
 
-            removeWithId(secondRemoveId)
+            removeProviderWithId(secondRemoveId)
             replace(secondReplaceId) with secondReplaceProvider
             append(secondAppendProvider)
         }

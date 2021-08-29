@@ -36,7 +36,8 @@ import java.nio.file.Paths
 import kotlin.streams.toList
 
 /**
- * Tests mainly behaviour of the generated decorator by executing generated decorator directly
+ * Tests mainly behaviour of the generated decorators by executing generated decorator directly instead
+ * of examining generated code
  */
 @ExperimentalCoroutinesApi
 class DecoratorProcessorTest : CoroutineTest() {
@@ -505,7 +506,9 @@ class DecoratorProcessorTest : CoroutineTest() {
     }
 
     /**
-     * Helps with testing of [Decoration] execution
+     * Helps with testing of [Decoration] execution by recording the time of the execution which
+     * can be used both for verifying that the [Decoration] was called and also verifying the order
+     * of [Decoration]s.
      */
     private class TestDecoration : Decoration {
 
