@@ -10,7 +10,7 @@ import api.decoration.Decoration
  * decorators. It can provide a common list of [Decoration.Provider]s or enable to handle thrown
  * exceptions due to some invalid config.
  */
-interface GlobalDecoratorConfig {
+abstract class GlobalDecoratorConfig {
 
     /**
      * Declares a list of [Decoration.Provider]s common to all decorators.
@@ -30,8 +30,7 @@ interface GlobalDecoratorConfig {
      * to creation of a new instance of a specific [Decoration.Provider] per decorator, thus leading
      * to a "singleton" per stub.
      */
-    // TODO fix bug with not having a backing field by default
-    val decorationProviders: List<Decoration.Provider<*>> get() = emptyList()
+    open val decorationProviders: List<Decoration.Provider<*>> = emptyList()
 
     /**
      * Can be overridden to provide a unified way of handling possible runtime exceptions which
@@ -41,7 +40,7 @@ interface GlobalDecoratorConfig {
      * This method throws the [exception] by default and if the [GlobalDecoratorConfig] does not
      * exist, all exceptions are also always thrown when they can't be delivered to this method.
      */
-    fun handleException(exception: Exception) {
+    open fun handleException(exception: Exception) {
         throw exception
     }
 }

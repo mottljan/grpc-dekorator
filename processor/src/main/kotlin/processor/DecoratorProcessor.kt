@@ -20,9 +20,13 @@ import com.google.devtools.ksp.symbol.KSNode
 import com.google.devtools.ksp.visitor.KSDefaultVisitor
 
 // TODO Revalidate whole solution (API) / try on real app (FN)
+// TODO Increase deps versions
+// TODO Solve other possible TODOs in the library
+// TODO Go through all files and code review them
 // TODO Think about lib name
 // TODO Write README
 // TODO Solve package name
+// TODO Publish lib
 
 // TODO testing with kotlin compile testing is not possible due to this error https://github.com/google/ksp/issues/427
 /**
@@ -62,7 +66,7 @@ internal class DecoratorProcessor(private val environment: SymbolProcessorEnviro
         val GLOBAL_DECORATOR_CONFIGURATION_TOO_MANY_ERROR = "${GlobalDecoratorConfiguration::class.simpleName} can be used only once"
         val GLOBAL_DECORATOR_CONFIGURATION_CLASS_KIND_ERROR = "${GlobalDecoratorConfiguration::class.simpleName} must annotate class"
         val GLOBAL_DECORATOR_CONFIGURATION_IMPL_ERROR =
-            "Class annotated with ${GlobalDecoratorConfiguration::class.simpleName} must implement ${GlobalDecoratorConfig::class.qualifiedName}"
+            "Class annotated with ${GlobalDecoratorConfiguration::class.simpleName} must extend ${GlobalDecoratorConfig::class.qualifiedName}"
         val GLOBAL_DECORATOR_CONFIGURATION_PROPERTY_ERROR = "${GlobalDecoratorConfig::decorationProviders.name} property has to have a backing field"
 
         val DECORATOR_CONFIGURATION_ERROR = "Not supported declaration type annotated with ${DecoratorConfiguration::class.simpleName}"

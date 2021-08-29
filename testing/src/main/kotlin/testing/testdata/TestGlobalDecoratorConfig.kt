@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
  * with caution since it can break tests.
  */
 @GlobalDecoratorConfiguration
-class TestGlobalDecoratorConfig(private val onHandleException: (Exception) -> Unit) : GlobalDecoratorConfig {
+class TestGlobalDecoratorConfig(private val onHandleException: (Exception) -> Unit) : GlobalDecoratorConfig() {
 
     override val decorationProviders = listOf(
         globalDecorationAProvider,

@@ -1,7 +1,6 @@
 package processor
 
 import api.annotation.GlobalDecoratorConfiguration
-import api.decoration.Decoration
 import api.decorator.GlobalDecoratorConfig
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
 import com.google.devtools.ksp.symbol.KSClassDeclaration
@@ -23,10 +22,10 @@ internal class GlobalDecoratorConfigVisitor(private val environment: SymbolProce
     }
 
     override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: Unit): GlobalDecoratorConfigResult {
-        val implementsRequiredInterface = classDeclaration.superTypes.any {
+        val extendsRequiredClass = classDeclaration.superTypes.any {
             it.resolve().declaration.qualifiedName!!.asString() == GlobalDecoratorConfig::class.qualifiedName
         }
-        return if (implementsRequiredInterface) {
+        return if (extendsRequiredClass) {
             val providersProp = classDeclaration.getAllProperties()
                 .find { it.simpleName.asString() == GlobalDecoratorConfig::decorationProviders.name }!!
             val providersPropIsValid = providersProp.hasBackingField
