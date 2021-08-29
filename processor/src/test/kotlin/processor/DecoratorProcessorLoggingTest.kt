@@ -242,7 +242,6 @@ class DecoratorProcessorLoggingTest {
                 
                 override fun getStub() = Stub()
 
-
                 @RpcConfiguration("rpc")
                 fun getCustomRpcDecorationStrategy()
             }

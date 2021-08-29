@@ -1,12 +1,11 @@
 package api.decoration
 
-import api.decoration.Decoration
-
 /**
- * TODO add class description
+ * Base class for "all" based strategies like [AppendAllStrategy]
  */
 abstract class BaseAllStrategyDefinition internal constructor() {
 
+    @Suppress("PropertyName")
     protected val _decorationProviders = mutableListOf<Decoration.Provider<*>>()
     val decorationProviders: List<Decoration.Provider<*>> get() = _decorationProviders
 }

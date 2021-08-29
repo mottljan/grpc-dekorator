@@ -47,12 +47,12 @@ internal class GlobalDecoratorConfigVisitor(private val environment: SymbolProce
 internal sealed class GlobalDecoratorConfigResult {
 
     /**
-     * Indicates that global [Decoration.Provider]s are missing in the configuration
+     * Indicates that [GlobalDecoratorConfiguration] is missing
      */
     object Missing : GlobalDecoratorConfigResult()
 
     /**
-     * Global [Decoration.Provider]s exist. [configTypeQualifiedName] is a qualified name of the
+     * [GlobalDecoratorConfiguration] exists. [configTypeQualifiedName] is a qualified name of the
      * type of the implementation of [GlobalDecoratorConfig].
      */
     data class Exists(val configTypeQualifiedName: String) : GlobalDecoratorConfigResult()

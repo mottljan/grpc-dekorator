@@ -2,9 +2,14 @@ package testing.testdata
 
 import api.annotation.GlobalDecoratorConfiguration
 import api.decoration.Decoration
+import api.decoration.ReplaceAllStrategy
 import api.decorator.GlobalDecoratorConfig
 import kotlinx.coroutines.flow.Flow
 
+/**
+ * [GlobalDecoratorConfig] implementation used for testing purposes. This class should be changed
+ * with caution since it can break tests.
+ */
 @GlobalDecoratorConfiguration
 class TestGlobalDecoratorConfig(private val onHandleException: (Exception) -> Unit) : GlobalDecoratorConfig {
 

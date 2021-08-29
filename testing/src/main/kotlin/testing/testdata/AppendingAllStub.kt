@@ -2,6 +2,7 @@ package testing.testdata
 
 import api.annotation.DecoratorConfiguration
 import api.annotation.RpcConfiguration
+import api.decoration.AppendAllStrategy
 import api.decoration.Decoration
 import api.decoration.appendAllStrategy
 import api.decorator.DecoratorConfig
@@ -10,6 +11,10 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onEach
 
+/**
+ * "Stub" class used for generating decorator for testing purposes. It is focused on [AppendAllStrategy]
+ * testing. This class should be changed with caution since it can break tests.
+ */
 @Suppress("UnusedPrivateMember")
 class AppendingAllStub(private val testCoroutineStubListener: TestCoroutineStubListener) {
 
@@ -67,6 +72,10 @@ class AppendingAllStub(private val testCoroutineStubListener: TestCoroutineStubL
     suspend fun customDecorationsRpc() {}
 }
 
+/**
+ * [DecoratorConfig] used for testing purposes. It is focused on [AppendAllStrategy] testing.
+ * This class should be changed with caution since it can break tests.
+ */
 @DecoratorConfiguration
 class AppendingAllStubDecoratorConfig(
     private val stubDecorationProviders: List<Decoration.Provider<*>>,
