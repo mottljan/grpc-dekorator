@@ -116,16 +116,10 @@ class DecoratorProcessorLoggingTest {
             import api.decorator.GlobalDecoratorConfig
 
             @GlobalDecoratorConfiguration
-            class GlobalConfig : GlobalDecoratorConfig {
-            
-                override val decorationProviders: List<Decoration.Provider<*>> = emptyList()
-            }
+            class GlobalConfig : GlobalDecoratorConfig()
 
             @GlobalDecoratorConfiguration
-            class GlobalConfig2 : GlobalDecoratorConfig {
-            
-                override val decorationProviders: List<Decoration.Provider<*>> = emptyList()
-            }
+            class GlobalConfig2 : GlobalDecoratorConfig()
         """.trimIndent()
 
         testLogging(
@@ -153,7 +147,7 @@ class DecoratorProcessorLoggingTest {
     }
 
     @Test
-    fun `error is logged when global decorator config annotation annotates class which does not implement required interface`() {
+    fun `error is logged when global decorator config annotation annotates class which does not extend required abstract class`() {
         // language=kotlin
         val testFileContent = """
             import api.annotation.GlobalDecoratorConfiguration
@@ -178,7 +172,7 @@ class DecoratorProcessorLoggingTest {
             import api.decorator.GlobalDecoratorConfig
 
             @GlobalDecoratorConfiguration
-            class GlobalConfig : GlobalDecoratorConfig {
+            class GlobalConfig : GlobalDecoratorConfig() {
             
                 override val decorationProviders: List<Decoration.Provider<*>> get() = emptyList()
             }
