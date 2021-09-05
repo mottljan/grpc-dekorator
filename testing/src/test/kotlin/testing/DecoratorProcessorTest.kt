@@ -405,7 +405,7 @@ class DecoratorProcessorTest : CoroutineTest() {
         val timeBeforeRpcCall = System.nanoTime()
 
         // Act
-        underTest.customDecorationsRpc()
+        underTest.customDecorationsRpc(underTest.customDecorationsRpcDecorationProviders)
 
         // Assert
         val stubDecorationCallTime = stubsDecorationProvider.lastSuspendFunDecorationNanoTime
@@ -425,7 +425,7 @@ class DecoratorProcessorTest : CoroutineTest() {
         )
         val timeBeforeRpcCall = System.nanoTime()
 
-        underTest.customRpc()
+        underTest.customRpc(underTest.customRpcDecorationProviders)
 
         assertThatNoGlobalDecorationWasCalled(timeBeforeRpcCall)
         stubsDecorationProvider.lastSuspendFunDecorationNanoTime shouldBeLessThan timeBeforeRpcCall // Stub's decoration was not called
@@ -448,7 +448,7 @@ class DecoratorProcessorTest : CoroutineTest() {
         val timeBeforeRpcCall = System.nanoTime()
 
         // Act
-        underTest.customRpc()
+        underTest.customRpc(underTest.customRpcDecorationProviders)
 
         // Assert
         // globalDecorationA was not called -> was removed
@@ -492,14 +492,14 @@ class DecoratorProcessorTest : CoroutineTest() {
         val timeBeforeRpcCall = System.nanoTime()
 
         // Act
-        underTest.customRpc()
+        underTest.customRpc(underTest.customRpcDecorationProviders)
 
         // Assert
         customRpcDecorationProvider.lastSuspendFunDecorationNanoTime shouldBeGreaterThan timeBeforeRpcCall
         anotherCustomRpcDecorationProvider.lastSuspendFunDecorationNanoTime shouldBeLessThan timeBeforeRpcCall // Not called yet
 
         // Act - We call this after first assert to reliably verify that decorations for particular RPCs were called correctly
-        underTest.anotherCustomRpc()
+        underTest.anotherCustomRpc(underTest.anotherCustomRpcDecorationProviders)
 
         // Assert
         anotherCustomRpcDecorationProvider.lastSuspendFunDecorationNanoTime shouldBeGreaterThan timeBeforeRpcCall
