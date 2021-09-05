@@ -2,7 +2,6 @@ package testing.testdata
 
 import api.annotation.GlobalDecoratorConfiguration
 import api.decoration.Decoration
-import api.decoration.ReplaceAllStrategy
 import api.decorator.GlobalDecoratorConfig
 import kotlinx.coroutines.flow.Flow
 
@@ -11,12 +10,12 @@ import kotlinx.coroutines.flow.Flow
  * with caution since it can break tests.
  */
 @GlobalDecoratorConfiguration
-class TestGlobalDecoratorConfig(private val onHandleException: (Exception) -> Unit) : GlobalDecoratorConfig() {
+class TestGlobalDecoratorConfig(private val onHandleException: (Exception) -> Unit) : GlobalDecoratorConfig {
 
-    override val decorationProviders = listOf(
-        globalDecorationAProvider,
-        globalDecorationBProvider,
-        globalDecorationCProvider
+    override val decorations = listOf(
+        globalDecorationA,
+        globalDecorationB,
+        globalDecorationC
     )
 
     override fun handleException(exception: Exception) {
@@ -24,9 +23,9 @@ class TestGlobalDecoratorConfig(private val onHandleException: (Exception) -> Un
     }
 }
 
-internal val globalDecorationAProvider = GlobalDecorationA.Provider()
-internal val globalDecorationBProvider = GlobalDecorationB.Provider()
-internal val globalDecorationCProvider = GlobalDecorationC.Provider()
+internal val globalDecorationA = GlobalDecorationA()
+internal val globalDecorationB = GlobalDecorationB()
+internal val globalDecorationC = GlobalDecorationC()
 
 abstract class GlobalDecoration : Decoration {
 
@@ -50,53 +49,34 @@ abstract class GlobalDecoration : Decoration {
         streamingFunDecorationNanoTime = System.nanoTime()
         return rpc()
     }
-
-    abstract class Provider<D : GlobalDecoration>(factory: () -> D) : Decoration.Provider<D>(
-        Decoration.InitStrategy.SINGLETON,
-        factory
-    ) {
-
-        fun clearTimes() {
-            getDecoration().clearTimes()
-        }
-    }
 }
 
 internal class GlobalDecorationA : GlobalDecoration() {
 
-    class Provider : GlobalDecoration.Provider<GlobalDecorationA>(::GlobalDecorationA) {
+    override val id = ID
 
-        override val id = ID
+    companion object {
 
-        companion object {
-
-            val ID = Id(Provider::class.qualifiedName!!)
-        }
+        val ID = Decoration.Id(GlobalDecorationA::class.qualifiedName!!)
     }
 }
 
 internal class GlobalDecorationB : GlobalDecoration() {
 
-    class Provider : GlobalDecoration.Provider<GlobalDecorationB>(::GlobalDecorationB) {
+    override val id = ID
 
-        override val id = ID
+    companion object {
 
-        companion object {
-
-            val ID = Id(Provider::class.qualifiedName!!)
-        }
+        val ID = Decoration.Id(GlobalDecorationB::class.qualifiedName!!)
     }
 }
 
 internal class GlobalDecorationC : GlobalDecoration() {
 
-    class Provider : GlobalDecoration.Provider<GlobalDecorationC>(::GlobalDecorationC) {
+    override val id = ID
 
-        override val id = ID
+    companion object {
 
-        companion object {
-
-            val ID = Id(Provider::class.qualifiedName!!)
-        }
+        val ID = Decoration.Id(GlobalDecorationC::class.qualifiedName!!)
     }
 }

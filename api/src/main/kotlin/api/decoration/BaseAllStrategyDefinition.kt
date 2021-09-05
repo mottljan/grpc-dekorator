@@ -6,6 +6,6 @@ package api.decoration
 abstract class BaseAllStrategyDefinition internal constructor() {
 
     @Suppress("PropertyName")
-    protected val _decorationProviders = mutableListOf<Decoration.Provider<*>>()
-    val decorationProviders: List<Decoration.Provider<*>> get() = _decorationProviders
+    protected val _decorations = mutableListOf<Decoration>()
+    val decorations: List<Decoration> get() = _decorations
 }

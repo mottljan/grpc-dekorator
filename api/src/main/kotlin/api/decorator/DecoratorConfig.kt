@@ -9,10 +9,9 @@ import api.decoration.noChangesStrategy
  * interface need to be also annotated with [DecoratorConfiguration].
  *
  * Classes implementing this interface have to provide instance of the decorated [Stub] and
- * optionally a [Decoration.Strategy] to be used for "merging" stub's specific [Decoration.Provider]s
- * with the globally defined ones. The resulting list of [Decoration.Provider]s is then used for
- * decoration of all stub's RPCs unless particular RPCs do not provide their own specific
- * [Decoration.Strategy].
+ * optionally a [Decoration.Strategy] to be used for "merging" stub's specific [Decoration]s
+ * with the globally defined ones. The resulting list of [Decoration]s is then used for decoration
+ * of all stub's RPCs unless particular RPCs do not provide their own specific [Decoration.Strategy].
  */
 interface DecoratorConfig<Stub> {
 
@@ -23,7 +22,7 @@ interface DecoratorConfig<Stub> {
 
     /**
      * Returns stub's [Decoration.Strategy]. By default it does not change globally defined
-     * [Decoration.Provider]s in any way. More info in [DecoratorConfig] docs.
+     * [Decoration]s in any way. More info in [DecoratorConfig] docs.
      */
     fun getStubDecorationStrategy(): Decoration.Strategy = noChangesStrategy()
 }

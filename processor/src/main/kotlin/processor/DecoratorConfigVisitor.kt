@@ -119,14 +119,14 @@ private class DecoratorFileContentGenerator(
 
     private val logger = environment.logger
 
-    private val decorationProvidersWrapperClassesNames = mutableMapOf<String, String>()
+    private val decorationsWrapperClassesNames = mutableMapOf<String, String>()
 
     fun generate(): String {
         return buildString {
             appendPackage()
             appendClassHeaderAndProperties()
             appendDecoratingFunctions()
-            appendDecorationProvidersWrapperClasses()
+            appendDecorationsWrapperClasses()
             append("}")
             append("\n")
         }
@@ -145,10 +145,10 @@ private class DecoratorFileContentGenerator(
 
         val globalDecoratorConfigArgName = "globalDecoratorConfig".orEmptyIfGlobalConfigMissing()
         val globalDecoratorConfigArgDeclaration = "$globalDecoratorConfigArgName: ${globalDecoratorConfigResult.getConfigTypeQualifiedNameOrEmpty()}"
-        val globalDecorationProviders = if (globalDecoratorConfigResult == GlobalDecoratorConfigResult.Missing) {
+        val globalDecorations = if (globalDecoratorConfigResult == GlobalDecoratorConfigResult.Missing) {
             "emptyList()"
         } else {
-            "$globalDecoratorConfigArgName.${GlobalDecoratorConfig::decorationProviders.name}"
+            "$globalDecoratorConfigArgName.${GlobalDecoratorConfig::decorations.name}"
         }
 
         val propsDeclarations = if (globalDecoratorConfigResult == GlobalDecoratorConfigResult.Missing) {
@@ -168,13 +168,13 @@ private class DecoratorFileContentGenerator(
             |) : ${CoroutineStubDecorator::class.qualifiedName}($globalDecoratorConfigArgName) {
             |    
             |    private val $stubPropertyName = $decoratorConfigArgName.${DecoratorConfig<*>::getStub.name}()
-            |    private val $STUB_DECORATION_PROVIDERS_PROPERTY_NAME = resolveDecorationProvidersBasedOnStrategy(
-            |        $globalDecorationProviders,
+            |    private val $STUB_DECORATIONS_PROPERTY_NAME = resolveDecorationsBasedOnStrategy(
+            |        $globalDecorations,
             |        $decoratorConfigArgName.${DecoratorConfig<*>::getStubDecorationStrategy.name}()
             |    )
             """.trimMargin()
         )
-        appendRpcsDecorationProvidersIfAny(decoratorConfigArgName)
+        appendRpcsDecorationsIfAny(decoratorConfigArgName)
         append("\n")
     }
 
@@ -207,27 +207,27 @@ private class DecoratorFileContentGenerator(
         return if (this is GlobalDecoratorConfigResult.Exists) configTypeQualifiedName else ""
     }
 
-    private fun StringBuilder.appendRpcsDecorationProvidersIfAny(decoratorConfigArgName: String) {
+    private fun StringBuilder.appendRpcsDecorationsIfAny(decoratorConfigArgName: String) {
         rpcConfigResults.forEach { rpcConfigResult ->
             append("\n")
-            val rpcProvidersWrapperPropName = getRpcDecorationProvidersPropName(rpcConfigResult.rpcName)
-            val rpcProvidersWrapperClassName = rpcProvidersWrapperPropName.replaceFirstChar { it.uppercaseChar() }
+            val rpcDecorationsWrapperPropName = getRpcDecorationsPropName(rpcConfigResult.rpcName)
+            val rpcDecorationsWrapperClassName = rpcDecorationsWrapperPropName.replaceFirstChar { it.uppercaseChar() }
 
             append(
                 """
-                |    val $rpcProvidersWrapperPropName = $rpcProvidersWrapperClassName(resolveDecorationProvidersBasedOnStrategy(
-                |        $STUB_DECORATION_PROVIDERS_PROPERTY_NAME,
+                |    val $rpcDecorationsWrapperPropName = $rpcDecorationsWrapperClassName(resolveDecorationsBasedOnStrategy(
+                |        $STUB_DECORATIONS_PROPERTY_NAME,
                 |        $decoratorConfigArgName.${rpcConfigResult.rpcConfigMethodName}()
                 |    ))
                 """.trimMargin()
             )
 
-            decorationProvidersWrapperClassesNames[rpcConfigResult.rpcName] = rpcProvidersWrapperClassName
+            decorationsWrapperClassesNames[rpcConfigResult.rpcName] = rpcDecorationsWrapperClassName
         }
     }
 
-    private fun getRpcDecorationProvidersPropName(rpcName: String): String {
-        return "$rpcName$RPC_DECORATION_PROVIDERS_PROPERTY_NAME_SUFFIX"
+    private fun getRpcDecorationsPropName(rpcName: String): String {
+        return "$rpcName$RPC_DECORATIONS_PROPERTY_NAME_SUFFIX"
     }
 
     private fun StringBuilder.appendDecoratingFunctions() {
@@ -287,7 +287,7 @@ private class DecoratorFileContentGenerator(
         appendDecoratingFunctionParameters(rpcName, originalFunctionDeclaration)
         appendDecoratingFunctionReturnType(originalFunctionDeclaration, originalResolvedReturnType)
         append(" {\n")
-        append("        return ${selectCorrectProvidersProperty(rpcName)}.iterator().$iteratorHelperMethodName {\n")
+        append("        return ${selectCorrectDecorationsProperty(rpcName)}.iterator().$iteratorHelperMethodName {\n")
         append("            $stubPropertyName.$rpcName")
         appendOriginalFunCallParams(originalFunctionDeclaration)
         append("        }\n")
@@ -301,15 +301,15 @@ private class DecoratorFileContentGenerator(
     ) {
         append("(")
 
-        val providersWrapperClassName = decorationProvidersWrapperClassesNames[rpcName]
+        val decorationsWrapperClassName = decorationsWrapperClassesNames[rpcName]
 
         val rpcParams = originalFunctionDeclaration.parameters
-        val totalParamsSize = rpcParams.size + (if (providersWrapperClassName == null) 0 else 1)
+        val totalParamsSize = rpcParams.size + (if (decorationsWrapperClassName == null) 0 else 1)
         when (totalParamsSize) {
             0 -> append(")")
             1 -> {
                 rpcParams.getOrNull(0)?.let { append(it.toFunParamDeclaration()) }
-                appendCustomProvidersParamIfNeeded(providersWrapperClassName, "", shouldWrapLine = false)
+                appendCustomDecorationsParamIfNeeded(decorationsWrapperClassName, "", shouldWrapLine = false)
                 append(")")
             }
             else -> {
@@ -318,7 +318,7 @@ private class DecoratorFileContentGenerator(
                 originalFunctionDeclaration.parameters.forEach { parameter ->
                     append("$indentation${parameter.toFunParamDeclaration()},\n")
                 }
-                appendCustomProvidersParamIfNeeded(providersWrapperClassName, indentation, shouldWrapLine = true)
+                appendCustomDecorationsParamIfNeeded(decorationsWrapperClassName, indentation, shouldWrapLine = true)
                 append("    )")
             }
         }
@@ -332,13 +332,13 @@ private class DecoratorFileContentGenerator(
 
     private fun KSValueParameter.getName() = name!!.asString()
 
-    private fun StringBuilder.appendCustomProvidersParamIfNeeded(
-        providersWrapperClassName: String?,
+    private fun StringBuilder.appendCustomDecorationsParamIfNeeded(
+        decorationsWrapperClassName: String?,
         indentation: String,
         shouldWrapLine: Boolean
     ) {
-        if (providersWrapperClassName != null) {
-            append("${indentation}$RPC_CUSTOM_PROVIDERS_PARAM_NAME: $providersWrapperClassName")
+        if (decorationsWrapperClassName != null) {
+            append("${indentation}$RPC_CUSTOM_DECORATIONS_PARAM_NAME: $decorationsWrapperClassName")
             if (shouldWrapLine) {
                 append("\n")
             }
@@ -362,12 +362,12 @@ private class DecoratorFileContentGenerator(
         }
     }
 
-    private fun selectCorrectProvidersProperty(rpcName: String): String {
+    private fun selectCorrectDecorationsProperty(rpcName: String): String {
         val rpcHasCustomDecorations = rpcConfigResults.any { it.rpcName == rpcName }
         return if (rpcHasCustomDecorations) {
-            "$RPC_CUSTOM_PROVIDERS_PARAM_NAME.$RPC_DECORATION_PROVIDERS_WRAPPER_CLASS_PROP_NAME"
+            "$RPC_CUSTOM_DECORATIONS_PARAM_NAME.$RPC_DECORATIONS_WRAPPER_CLASS_PROP_NAME"
         } else {
-            STUB_DECORATION_PROVIDERS_PROPERTY_NAME
+            STUB_DECORATIONS_PROPERTY_NAME
         }
     }
 
@@ -396,18 +396,18 @@ private class DecoratorFileContentGenerator(
         return declaration.qualifiedName!!.asString() == Flow::class.qualifiedName
     }
 
-    private fun StringBuilder.appendDecorationProvidersWrapperClasses() {
-        decorationProvidersWrapperClassesNames.values.forEach { className ->
-            val propName = RPC_DECORATION_PROVIDERS_WRAPPER_CLASS_PROP_NAME
-            append("\n    data class $className(val $propName: List<${Decoration.Provider::class.qualifiedName}<*>>)\n")
+    private fun StringBuilder.appendDecorationsWrapperClasses() {
+        decorationsWrapperClassesNames.values.forEach { className ->
+            val propName = RPC_DECORATIONS_WRAPPER_CLASS_PROP_NAME
+            append("\n    data class $className(val $propName: List<${Decoration::class.qualifiedName}>)\n")
         }
     }
 
     companion object {
 
-        private const val STUB_DECORATION_PROVIDERS_PROPERTY_NAME = "stub_decorationProviders"
-        private const val RPC_DECORATION_PROVIDERS_PROPERTY_NAME_SUFFIX = "DecorationProviders"
-        private const val RPC_DECORATION_PROVIDERS_WRAPPER_CLASS_PROP_NAME = "value"
-        private const val RPC_CUSTOM_PROVIDERS_PARAM_NAME = "customProviders"
+        private const val STUB_DECORATIONS_PROPERTY_NAME = "stub_decorations"
+        private const val RPC_DECORATIONS_PROPERTY_NAME_SUFFIX = "Decorations"
+        private const val RPC_DECORATIONS_WRAPPER_CLASS_PROP_NAME = "value"
+        private const val RPC_CUSTOM_DECORATIONS_PARAM_NAME = "customDecorations"
     }
 }

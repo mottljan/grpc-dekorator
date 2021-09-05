@@ -5,7 +5,6 @@ import com.tschuchort.compiletesting.SourceFile
 import com.tschuchort.compiletesting.symbolProcessorProviders
 import org.amshove.kluent.shouldBeEqualTo
 import org.amshove.kluent.shouldContain
-import org.amshove.kluent.shouldNotContain
 import org.junit.jupiter.api.Test
 
 /**
@@ -116,10 +115,10 @@ class DecoratorProcessorLoggingTest {
             import api.decorator.GlobalDecoratorConfig
 
             @GlobalDecoratorConfiguration
-            class GlobalConfig : GlobalDecoratorConfig()
+            class GlobalConfig : GlobalDecoratorConfig
 
             @GlobalDecoratorConfiguration
-            class GlobalConfig2 : GlobalDecoratorConfig()
+            class GlobalConfig2 : GlobalDecoratorConfig
         """.trimIndent()
 
         testLogging(
@@ -147,7 +146,7 @@ class DecoratorProcessorLoggingTest {
     }
 
     @Test
-    fun `error is logged when global decorator config annotation annotates class which does not extend required abstract class`() {
+    fun `error is logged when global decorator config annotation annotates class which does not implement required interface`() {
         // language=kotlin
         val testFileContent = """
             import api.annotation.GlobalDecoratorConfiguration
@@ -160,28 +159,6 @@ class DecoratorProcessorLoggingTest {
             testSourceFileContent = testFileContent,
             expectedCode = KotlinCompilation.ExitCode.COMPILATION_ERROR,
             expectedMessage = DecoratorProcessor.GLOBAL_DECORATOR_CONFIGURATION_IMPL_ERROR
-        )
-    }
-
-    @Test
-    fun `error is logged when global decorator config class implements property without backing field`() {
-        // language=kotlin
-        val testFileContent = """
-            import api.annotation.GlobalDecoratorConfiguration
-            import api.decoration.Decoration
-            import api.decorator.GlobalDecoratorConfig
-
-            @GlobalDecoratorConfiguration
-            class GlobalConfig : GlobalDecoratorConfig() {
-            
-                override val decorationProviders: List<Decoration.Provider<*>> get() = emptyList()
-            }
-        """.trimIndent()
-
-        testLogging(
-            testSourceFileContent = testFileContent,
-            expectedCode = KotlinCompilation.ExitCode.COMPILATION_ERROR,
-            expectedMessage = DecoratorProcessor.GLOBAL_DECORATOR_CONFIGURATION_PROPERTY_ERROR
         )
     }
 

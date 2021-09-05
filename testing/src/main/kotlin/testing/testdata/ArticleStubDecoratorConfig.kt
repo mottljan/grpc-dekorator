@@ -21,6 +21,6 @@ class ArticleStubDecoratorConfig(private val channel: Channel) : DecoratorConfig
     }
 
     override fun getStubDecorationStrategy() = appendAllStrategy {
-        append(DispatcherSwappingDecoration.Provider(Decoration.InitStrategy.SINGLETON, Dispatchers.IO))
+        append(DispatcherSwappingDecoration(Dispatchers.IO))
     }
 }
