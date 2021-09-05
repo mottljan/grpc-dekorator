@@ -10,6 +10,8 @@ import kotlinx.coroutines.withContext
  */
 class DispatcherSwappingDecoration(private val dispatcher: CoroutineDispatcher) : Decoration {
 
+    override val id = ID
+
     override suspend fun <Response> decorate(rpc: suspend () -> Response): Response {
         return withContext(dispatcher) { rpc() }
     }
@@ -18,16 +20,8 @@ class DispatcherSwappingDecoration(private val dispatcher: CoroutineDispatcher) 
         return rpc().flowOn(dispatcher)
     }
 
-    class Provider(
-        initStrategy: Decoration.InitStrategy,
-        private val dispatcher: CoroutineDispatcher
-    ) : Decoration.Provider<DispatcherSwappingDecoration>(initStrategy, { DispatcherSwappingDecoration(dispatcher) }) {
+    companion object {
 
-        override val id = ID
-
-        companion object {
-
-            val ID = Id(Provider::class.qualifiedName!!)
-        }
+        val ID = Decoration.Id(DispatcherSwappingDecoration::class.qualifiedName!!)
     }
 }

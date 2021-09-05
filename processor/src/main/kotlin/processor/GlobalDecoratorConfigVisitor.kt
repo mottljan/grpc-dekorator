@@ -22,18 +22,11 @@ internal class GlobalDecoratorConfigVisitor(private val environment: SymbolProce
     }
 
     override fun visitClassDeclaration(classDeclaration: KSClassDeclaration, data: Unit): GlobalDecoratorConfigResult {
-        val extendsRequiredClass = classDeclaration.superTypes.any {
+        val implementsRequiredInterface = classDeclaration.superTypes.any {
             it.resolve().declaration.qualifiedName!!.asString() == GlobalDecoratorConfig::class.qualifiedName
         }
-        return if (extendsRequiredClass) {
-            val providersProp = classDeclaration.getAllProperties()
-                .find { it.simpleName.asString() == GlobalDecoratorConfig::decorationProviders.name }!!
-            val providersPropIsValid = providersProp.hasBackingField
-            if (providersPropIsValid) {
-                GlobalDecoratorConfigResult.Exists(classDeclaration.qualifiedName!!.asString())
-            } else {
-                logAndThrow(DecoratorProcessor.GLOBAL_DECORATOR_CONFIGURATION_PROPERTY_ERROR, classDeclaration)
-            }
+        return if (implementsRequiredInterface) {
+            GlobalDecoratorConfigResult.Exists(classDeclaration.qualifiedName!!.asString())
         } else {
             logAndThrow(DecoratorProcessor.GLOBAL_DECORATOR_CONFIGURATION_IMPL_ERROR, classDeclaration)
         }

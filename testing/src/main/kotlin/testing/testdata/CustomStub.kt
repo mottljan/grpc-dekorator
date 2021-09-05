@@ -2,7 +2,6 @@ package testing.testdata
 
 import api.annotation.DecoratorConfiguration
 import api.annotation.RpcConfiguration
-import api.decoration.AppendAllStrategy
 import api.decoration.CustomStrategy
 import api.decoration.Decoration
 import api.decoration.customStrategy
@@ -25,10 +24,10 @@ internal class CustomStub {
  */
 @DecoratorConfiguration
 internal class CustomStubDecoratorConfig(
-    private val replaceStubProvider: Decoration.Provider<*>,
-    private val appendStubProvider: Decoration.Provider<*>,
-    private val replaceCustomRpcProvider: Decoration.Provider<*>?,
-    private val appendCustomRpcProvider: Decoration.Provider<*>?,
+    private val replaceStubDecoration: Decoration,
+    private val appendStubDecoration: Decoration,
+    private val replaceCustomRpcDecoration: Decoration?,
+    private val appendCustomRpcDecoration: Decoration?,
 ) : DecoratorConfig<CustomStub> {
 
     override fun getStub(): CustomStub {
@@ -36,15 +35,15 @@ internal class CustomStubDecoratorConfig(
     }
 
     override fun getStubDecorationStrategy() = customStrategy {
-        removeProviderWithId(GlobalDecorationA.Provider.ID)
-        replace(GlobalDecorationB.Provider.ID) with replaceStubProvider
-        append(appendStubProvider)
+        removeDecorationWithId(GlobalDecorationA.ID)
+        replace(GlobalDecorationB.ID) with replaceStubDecoration
+        append(appendStubDecoration)
     }
 
     @RpcConfiguration(rpcName = "customRpc")
     fun getCustomRpcDecorationStrategy() = customStrategy {
-        removeProviderWithId(appendStubProvider.id)
-        replaceCustomRpcProvider?.let { replace(replaceStubProvider.id) with it }
-        appendCustomRpcProvider?.let { append(it) }
+        removeDecorationWithId(appendStubDecoration.id)
+        replaceCustomRpcDecoration?.let { replace(replaceStubDecoration.id) with it }
+        appendCustomRpcDecoration?.let { append(it) }
     }
 }

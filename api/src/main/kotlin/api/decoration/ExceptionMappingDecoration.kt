@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.catch
  */
 class ExceptionMappingDecoration(private val exceptionMapper: ExceptionMapper) : Decoration {
 
+    override val id = ID
+
     override suspend fun <Response> decorate(rpc: suspend () -> Response): Response {
         return tryCoroutine {
             rpc()
@@ -24,17 +26,9 @@ class ExceptionMappingDecoration(private val exceptionMapper: ExceptionMapper) :
         return rpc().catch { throw exceptionMapper.mapException(it) }
     }
 
-    class Provider(
-        initStrategy: Decoration.InitStrategy,
-        private val exceptionMapper: ExceptionMapper
-    ) : Decoration.Provider<ExceptionMappingDecoration>(initStrategy, { ExceptionMappingDecoration(exceptionMapper) }) {
+    companion object {
 
-        override val id = ID
-
-        companion object {
-
-            val ID = Id(Provider::class.qualifiedName!!)
-        }
+        val ID = Decoration.Id(ExceptionMappingDecoration::class.qualifiedName!!)
     }
 }
 

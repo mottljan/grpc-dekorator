@@ -2,7 +2,6 @@ package testing.testdata
 
 import api.annotation.DecoratorConfiguration
 import api.annotation.RpcConfiguration
-import api.decoration.AppendAllStrategy
 import api.decoration.Decoration
 import api.decoration.ReplaceAllStrategy
 import api.decoration.replaceAllStrategy
@@ -27,9 +26,9 @@ internal class ReplacingAllStub {
  */
 @DecoratorConfiguration
 internal class ReplacingAllStubDecoratorConfig(
-    private val stubDecorationProviders: List<Decoration.Provider<*>>,
-    private val customRpcDecorationProviders: List<Decoration.Provider<*>>,
-    private val anotherCustomRpcDecorationProviders: List<Decoration.Provider<*>>,
+    private val stubDecorations: List<Decoration>,
+    private val customRpcDecorations: List<Decoration>,
+    private val anotherCustomRpcDecorations: List<Decoration>,
 ) : DecoratorConfig<ReplacingAllStub> {
 
     override fun getStub(): ReplacingAllStub {
@@ -37,16 +36,16 @@ internal class ReplacingAllStubDecoratorConfig(
     }
 
     override fun getStubDecorationStrategy() = replaceAllStrategy {
-        stubDecorationProviders.forEach { replaceWith(it) }
+        stubDecorations.forEach { replaceWith(it) }
     }
 
     @RpcConfiguration(rpcName = "customRpc")
     fun getCustomRpcStrategy() = replaceAllStrategy {
-        customRpcDecorationProviders.forEach { replaceWith(it) }
+        customRpcDecorations.forEach { replaceWith(it) }
     }
 
     @RpcConfiguration(rpcName = "anotherCustomRpc")
     fun getAnotherCustomRpcStrategy() = replaceAllStrategy {
-        anotherCustomRpcDecorationProviders.forEach { replaceWith(it) }
+        anotherCustomRpcDecorations.forEach { replaceWith(it) }
     }
 }

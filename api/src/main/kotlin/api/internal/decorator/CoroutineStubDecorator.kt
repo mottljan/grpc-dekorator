@@ -15,76 +15,76 @@ import kotlinx.coroutines.flow.Flow
 @Deprecated("Should be used only by generated decorators!", level = DeprecationLevel.HIDDEN)
 abstract class CoroutineStubDecorator(private val globalDecoratorConfig: GlobalDecoratorConfig? = null) {
 
-    protected suspend fun <Resp> Iterator<Decoration.Provider<*>>.applyNextDecorationOrCallRpc(callRpc: suspend () -> Resp): Resp {
+    protected suspend fun <Resp> Iterator<Decoration>.applyNextDecorationOrCallRpc(callRpc: suspend () -> Resp): Resp {
         return if (hasNext()) {
-            next().getDecoration().decorate { applyNextDecorationOrCallRpc(callRpc) }
+            next().decorate { applyNextDecorationOrCallRpc(callRpc) }
         } else {
             callRpc()
         }
     }
 
-    protected fun <Resp> Iterator<Decoration.Provider<*>>.applyNextDecorationOrCallStreamRpc(callRpc: () -> Flow<Resp>): Flow<Resp> {
+    protected fun <Resp> Iterator<Decoration>.applyNextDecorationOrCallStreamRpc(callRpc: () -> Flow<Resp>): Flow<Resp> {
         return if (hasNext()) {
-            next().getDecoration().decorateStream { applyNextDecorationOrCallStreamRpc(callRpc) }
+            next().decorateStream { applyNextDecorationOrCallStreamRpc(callRpc) }
         } else {
             callRpc()
         }
     }
 
-    protected fun resolveDecorationProvidersBasedOnStrategy(
-        higherLevelProviders: List<Decoration.Provider<*>>,
+    protected fun resolveDecorationsBasedOnStrategy(
+        higherLevelDecorations: List<Decoration>,
         strategy: Decoration.Strategy
-    ): List<Decoration.Provider<*>> {
+    ): List<Decoration> {
         return when (strategy) {
-            is AppendAllStrategy -> higherLevelProviders + strategy.providers
-            is ReplaceAllStrategy -> strategy.providers
-            is CustomStrategy -> resolveProvidersBasedOnCustomStrategy(higherLevelProviders, strategy)
+            is AppendAllStrategy -> higherLevelDecorations + strategy.decorations
+            is ReplaceAllStrategy -> strategy.decorations
+            is CustomStrategy -> resolveDecorationsBasedOnCustomStrategy(higherLevelDecorations, strategy)
             // when is exhaustive without else branch, however at compile time it fails that it is not.
             // Probably caused by sealed class descendants not nested inside sealed class.
             else -> throw IllegalStateException("Unsupported strategy")
         }
     }
 
-    private fun resolveProvidersBasedOnCustomStrategy(
-        higherLevelProviders: List<Decoration.Provider<*>>,
+    private fun resolveDecorationsBasedOnCustomStrategy(
+        higherLevelDecorations: List<Decoration>,
         strategy: CustomStrategy
-    ): List<Decoration.Provider<*>> {
-        val resolvedProviders = higherLevelProviders.toMutableList()
-        strategy.actions.forEach { resolvedProviders.modifyBasedOnAction(it) }
-        return resolvedProviders
+    ): List<Decoration> {
+        val resolvedDecorations = higherLevelDecorations.toMutableList()
+        strategy.actions.forEach { resolvedDecorations.modifyBasedOnAction(it) }
+        return resolvedDecorations
     }
 
-    private fun MutableList<Decoration.Provider<*>>.modifyBasedOnAction(action: CustomStrategy.Action) {
+    private fun MutableList<Decoration>.modifyBasedOnAction(action: CustomStrategy.Action) {
         when (action) {
             is CustomStrategy.Action.Remove -> {
-                val wasRemoved = removeIf { it.id == action.providerId }
+                val wasRemoved = removeIf { it.id == action.decorationId }
                 if (!wasRemoved) {
-                    deliverIllegalStrategyActionException(actionName = "remove", action.providerId)
+                    deliverIllegalStrategyActionException(actionName = "remove", action.decorationId)
                 }
             }
             is CustomStrategy.Action.Replace -> {
                 var wasReplaced = false
-                replaceAll { provider ->
-                    if (provider.id == action.oldProviderId) {
+                replaceAll { decoration ->
+                    if (decoration.id == action.oldDecorationId) {
                         wasReplaced = true
-                        action.newProvider
+                        action.newDecoration
                     } else {
-                        provider
+                        decoration
                     }
                 }
                 if (!wasReplaced) {
-                    deliverIllegalStrategyActionException(actionName = "replace", action.oldProviderId)
+                    deliverIllegalStrategyActionException(actionName = "replace", action.oldDecorationId)
                 }
             }
             is CustomStrategy.Action.Append -> {
-                this += action.provider
+                this += action.decoration
             }
         }
     }
 
-    private fun deliverIllegalStrategyActionException(actionName: String, providerId: Decoration.Provider.Id) {
-        val exception = IllegalStateException("Tried to $actionName ${Decoration.Provider::class.simpleName} " +
-            "with id \"$providerId\", but it was not found")
+    private fun deliverIllegalStrategyActionException(actionName: String, decorationId: Decoration.Id) {
+        val exception = IllegalStateException("Tried to $actionName ${Decoration::class.simpleName} " +
+            "with id \"$decorationId\", but it was not found")
         globalDecoratorConfig?.handleException(exception) ?: throw exception
     }
 }

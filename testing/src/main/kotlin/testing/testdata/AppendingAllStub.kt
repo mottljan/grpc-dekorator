@@ -6,7 +6,6 @@ import api.decoration.AppendAllStrategy
 import api.decoration.Decoration
 import api.decoration.appendAllStrategy
 import api.decoration.noChangesStrategy
-import api.decoration.replaceAllStrategy
 import api.decorator.DecoratorConfig
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -84,8 +83,8 @@ class AppendingAllStub(private val testCoroutineStubListener: TestCoroutineStubL
  */
 @DecoratorConfiguration
 class AppendingAllStubDecoratorConfig(
-    private val stubDecorationProviders: List<Decoration.Provider<*>>,
-    private val customRpcDecorationProviders: List<Decoration.Provider<*>>,
+    private val stubDecorations: List<Decoration>,
+    private val customRpcDecorations: List<Decoration>,
     private val testCoroutineStubListener: TestCoroutineStubListener
 ) : DecoratorConfig<AppendingAllStub> {
 
@@ -94,12 +93,12 @@ class AppendingAllStubDecoratorConfig(
     }
 
     override fun getStubDecorationStrategy() = appendAllStrategy {
-        stubDecorationProviders.forEach { append(it) }
+        stubDecorations.forEach { append(it) }
     }
 
     @RpcConfiguration(rpcName = "customDecorationsRpc")
     fun getCustomRpcStrategy() = appendAllStrategy {
-        customRpcDecorationProviders.forEach { append(it) }
+        customRpcDecorations.forEach { append(it) }
     }
 
     @RpcConfiguration(rpcName = "customDecorationsRpcWithParam")

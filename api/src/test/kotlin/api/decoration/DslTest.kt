@@ -11,97 +11,93 @@ internal class DslTest {
     private val decoratorConfig = TestDecoratorConfig()
 
     @Test
-    fun `creates replaceAll strategy with multiple decoration providers`() {
-        val firstProvider = createTestDecorationProvider()
-        val secondProvider = createTestDecorationProvider()
+    fun `creates replaceAll strategy with multiple decorations`() {
+        val firstDecoration = createTestDecoration()
+        val secondDecoration = createTestDecoration()
 
         val strategy = decoratorConfig.replaceAllStrategy {
-            replaceWith(firstProvider)
-            replaceWith(secondProvider)
+            replaceWith(firstDecoration)
+            replaceWith(secondDecoration)
         }
 
         strategy shouldBeInstanceOf ReplaceAllStrategy::class
-        (strategy as ReplaceAllStrategy).providers shouldBeEqualTo listOf(firstProvider, secondProvider)
+        (strategy as ReplaceAllStrategy).decorations shouldBeEqualTo listOf(firstDecoration, secondDecoration)
     }
 
     @Test
-    fun `creates appendAll strategy with multiple decoration providers`() {
-        val firstProvider = createTestDecorationProvider()
-        val secondProvider = createTestDecorationProvider()
+    fun `creates appendAll strategy with multiple decorations`() {
+        val firstDecoration = createTestDecoration()
+        val secondDecoration = createTestDecoration()
 
         val strategy = decoratorConfig.appendAllStrategy {
-            append(firstProvider)
-            append(secondProvider)
+            append(firstDecoration)
+            append(secondDecoration)
         }
 
         strategy shouldBeInstanceOf AppendAllStrategy::class
-        (strategy as AppendAllStrategy).providers shouldBeEqualTo listOf(firstProvider, secondProvider)
+        (strategy as AppendAllStrategy).decorations shouldBeEqualTo listOf(firstDecoration, secondDecoration)
     }
 
     @Test
     fun `creates custom strategy with all supported actions`() {
         // Arrange
-        val firstRemoveId = Decoration.Provider.Id("firstRemoveId")
-        val secondRemoveId = Decoration.Provider.Id("secondRemoveId")
+        val firstRemoveId = Decoration.Id("firstRemoveId")
+        val secondRemoveId = Decoration.Id("secondRemoveId")
 
-        val firstReplaceId = Decoration.Provider.Id("firstReplaceId")
-        val secondReplaceId = Decoration.Provider.Id("secondReplaceId")
-        val firstReplaceProvider = createTestDecorationProvider()
-        val secondReplaceProvider = createTestDecorationProvider()
+        val firstReplaceId = Decoration.Id("firstReplaceId")
+        val secondReplaceId = Decoration.Id("secondReplaceId")
+        val firstReplaceDecoration = createTestDecoration()
+        val secondReplaceDecoration = createTestDecoration()
 
-        val firstAppendProvider = createTestDecorationProvider()
-        val secondAppendProvider = createTestDecorationProvider()
+        val firstAppendDecoration = createTestDecoration()
+        val secondAppendDecoration = createTestDecoration()
 
         // Act
         val strategy = decoratorConfig.customStrategy {
-            removeProviderWithId(firstRemoveId)
-            replace(firstReplaceId) with firstReplaceProvider
-            append(firstAppendProvider)
+            removeDecorationWithId(firstRemoveId)
+            replace(firstReplaceId) with firstReplaceDecoration
+            append(firstAppendDecoration)
 
-            removeProviderWithId(secondRemoveId)
-            replace(secondReplaceId) with secondReplaceProvider
-            append(secondAppendProvider)
+            removeDecorationWithId(secondRemoveId)
+            replace(secondReplaceId) with secondReplaceDecoration
+            append(secondAppendDecoration)
         }
 
         // Assert
         strategy shouldBeInstanceOf CustomStrategy::class
 
         val actions = (strategy as CustomStrategy).actions
-        (actions[0] as CustomStrategy.Action.Remove).providerId shouldBeEqualTo firstRemoveId
+        (actions[0] as CustomStrategy.Action.Remove).decorationId shouldBeEqualTo firstRemoveId
 
         val firstReplaceAction = (actions[1] as CustomStrategy.Action.Replace)
-        firstReplaceAction.oldProviderId shouldBeEqualTo firstReplaceId
-        firstReplaceAction.newProvider shouldBeEqualTo firstReplaceProvider
+        firstReplaceAction.oldDecorationId shouldBeEqualTo firstReplaceId
+        firstReplaceAction.newDecoration shouldBeEqualTo firstReplaceDecoration
 
-        (actions[2] as CustomStrategy.Action.Append).provider shouldBeEqualTo firstAppendProvider
+        (actions[2] as CustomStrategy.Action.Append).decoration shouldBeEqualTo firstAppendDecoration
 
-        (actions[3] as CustomStrategy.Action.Remove).providerId shouldBeEqualTo secondRemoveId
+        (actions[3] as CustomStrategy.Action.Remove).decorationId shouldBeEqualTo secondRemoveId
 
         val secondReplaceAction = (actions[4] as CustomStrategy.Action.Replace)
-        secondReplaceAction.oldProviderId shouldBeEqualTo secondReplaceId
-        secondReplaceAction.newProvider shouldBeEqualTo secondReplaceProvider
+        secondReplaceAction.oldDecorationId shouldBeEqualTo secondReplaceId
+        secondReplaceAction.newDecoration shouldBeEqualTo secondReplaceDecoration
 
-        (actions[5] as CustomStrategy.Action.Append).provider shouldBeEqualTo secondAppendProvider
-
+        (actions[5] as CustomStrategy.Action.Append).decoration shouldBeEqualTo secondAppendDecoration
     }
 }
 
-private fun createTestDecorationProvider() = TestDecoration.Provider()
+private fun createTestDecoration() = TestDecoration()
 
 private class TestDecoration : Decoration {
+
+    override val id = ID
 
     override suspend fun <Response> decorate(rpc: suspend () -> Response): Response = rpc()
 
     override fun <Response> decorateStream(rpc: () -> Flow<Response>): Flow<Response> = rpc()
 
-    class Provider : Decoration.Provider<TestDecoration>(Decoration.InitStrategy.FACTORY, { TestDecoration() }) {
+    companion object {
 
-        override val id = ID
-
-        companion object {
-
-            val ID = Id(Provider::class.qualifiedName!!)
-        }
+        val ID = Decoration.Id(TestDecoration::class.qualifiedName!!)
     }
 }
 

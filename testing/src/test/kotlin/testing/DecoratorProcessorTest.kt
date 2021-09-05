@@ -28,9 +28,9 @@ import testing.testdata.ReplaceExceptionDecoratorConfig
 import testing.testdata.ReplacingAllStubDecoratorConfig
 import testing.testdata.TestCoroutineStubListener
 import testing.testdata.TestGlobalDecoratorConfig
-import testing.testdata.globalDecorationAProvider
-import testing.testdata.globalDecorationBProvider
-import testing.testdata.globalDecorationCProvider
+import testing.testdata.globalDecorationA
+import testing.testdata.globalDecorationB
+import testing.testdata.globalDecorationC
 import java.io.File
 import java.nio.file.Paths
 import kotlin.streams.toList
@@ -42,31 +42,31 @@ import kotlin.streams.toList
 @ExperimentalCoroutinesApi
 class DecoratorProcessorTest : CoroutineTest() {
 
-    private val firstDecorationProvider = TestDecoration.Provider()
-    private val secondDecorationProvider = TestDecoration.Provider()
+    private val firstDecoration = TestDecoration()
+    private val secondDecoration = TestDecoration()
 
     private val expectedGeneratedTestDecoratorName = "${AppendingAllStub::class.simpleName}Decorator"
 
     private val stubListener = StubListener()
 
-    private val appendingAllDecoratorWithDecorations = createAppendingAllDecorator(listOf(firstDecorationProvider, secondDecorationProvider))
+    private val appendingAllDecoratorWithDecorations = createAppendingAllDecorator(listOf(firstDecoration, secondDecoration))
 
     @AfterEach
     fun afterEach() {
-        globalDecorationAProvider.clearTimes()
-        globalDecorationBProvider.clearTimes()
-        globalDecorationCProvider.clearTimes()
+        globalDecorationA.clearTimes()
+        globalDecorationB.clearTimes()
+        globalDecorationC.clearTimes()
     }
 
     private fun createAppendingAllDecorator(
-        stubDecorationProviders: List<Decoration.Provider<*>>,
-        customRpcDecorationProviders: List<Decoration.Provider<*>> = emptyList()
+        stubDecorations: List<Decoration>,
+        customRpcDecorations: List<Decoration> = emptyList()
     ): AppendingAllStubDecorator {
         return AppendingAllStubDecorator(
             createGlobalDecoratorConfig(),
             AppendingAllStubDecoratorConfig(
-                stubDecorationProviders = stubDecorationProviders,
-                customRpcDecorationProviders = customRpcDecorationProviders,
+                stubDecorations = stubDecorations,
+                customRpcDecorations = customRpcDecorations,
                 testCoroutineStubListener = stubListener
             )
         )
@@ -131,19 +131,19 @@ class DecoratorProcessorTest : CoroutineTest() {
     fun `decorations are applied in correct order for suspend fun`() = testDispatcher.runBlockingTest {
         appendingAllDecoratorWithDecorations.rpc("")
 
-        val firstDecorationTime = firstDecorationProvider.lastSuspendFunDecorationNanoTime
-        val secondDecorationTime = secondDecorationProvider.lastSuspendFunDecorationNanoTime
+        val firstDecorationTime = firstDecoration.suspendFunDecorationNanoTime
+        val secondDecorationTime = secondDecoration.suspendFunDecorationNanoTime
         firstDecorationTime shouldBeLessThan secondDecorationTime
     }
 
     @Test
     fun `decorations are applied in correct order for reversed order for suspend fun`() = testDispatcher.runBlockingTest {
-        val underTest = createAppendingAllDecorator(listOf(secondDecorationProvider, firstDecorationProvider))
+        val underTest = createAppendingAllDecorator(listOf(secondDecoration, firstDecoration))
 
         underTest.rpc("")
 
-        val firstDecorationTime = firstDecorationProvider.lastSuspendFunDecorationNanoTime
-        val secondDecorationTime = secondDecorationProvider.lastSuspendFunDecorationNanoTime
+        val firstDecorationTime = firstDecoration.suspendFunDecorationNanoTime
+        val secondDecorationTime = secondDecoration.suspendFunDecorationNanoTime
         secondDecorationTime shouldBeLessThan firstDecorationTime
     }
 
@@ -151,19 +151,19 @@ class DecoratorProcessorTest : CoroutineTest() {
     fun `decorations are applied in correct order for streaming fun`() = testDispatcher.runBlockingTest {
         appendingAllDecoratorWithDecorations.streamingRpc("").collect()
 
-        val firstDecorationTime = firstDecorationProvider.lastStreamingFunDecorationNanoTime
-        val secondDecorationTime = secondDecorationProvider.lastStreamingFunDecorationNanoTime
+        val firstDecorationTime = firstDecoration.streamingFunDecorationNanoTime
+        val secondDecorationTime = secondDecoration.streamingFunDecorationNanoTime
         firstDecorationTime shouldBeLessThan secondDecorationTime
     }
 
     @Test
     fun `decorations are applied in correct order for reversed order for streaming fun`() = testDispatcher.runBlockingTest {
-        val decorator = createAppendingAllDecorator(listOf(secondDecorationProvider, firstDecorationProvider))
+        val decorator = createAppendingAllDecorator(listOf(secondDecoration, firstDecoration))
 
         decorator.streamingRpc("").collect()
 
-        val firstDecorationTime = firstDecorationProvider.lastStreamingFunDecorationNanoTime
-        val secondDecorationTime = secondDecorationProvider.lastStreamingFunDecorationNanoTime
+        val firstDecorationTime = firstDecoration.streamingFunDecorationNanoTime
+        val secondDecorationTime = secondDecoration.streamingFunDecorationNanoTime
         secondDecorationTime shouldBeLessThan firstDecorationTime
     }
 
@@ -211,59 +211,14 @@ class DecoratorProcessorTest : CoroutineTest() {
     }
 
     @Test
-    fun `new instance of decoration is created for each RPC invocation when requested with init strategy`() = testDispatcher.runBlockingTest {
-        var createdInstancesCount = 0
-        val provider = TestDecoration.Provider(initStrategy = Decoration.InitStrategy.FACTORY) {
-            createdInstancesCount++
-            TestDecoration()
-        }
-        val underTest = createAppendingAllDecorator(listOf(provider))
-
-        underTest.rpc("")
-        underTest.rpc("")
-
-        createdInstancesCount shouldBeEqualTo 2
-    }
-
-    @Test
-    fun `single instance of decoration is created right away for all RPC invocations when requested with init strategy`() {
-        testDispatcher.runBlockingTest {
-            testOnlyOneDecorationInstanceCreation(Decoration.InitStrategy.SINGLETON)
-        }
-    }
-
-    private suspend fun testOnlyOneDecorationInstanceCreation(initStrategy: Decoration.InitStrategy) {
-        var createdInstancesCount = 0
-        val provider = TestDecoration.Provider(initStrategy = initStrategy) {
-            createdInstancesCount++
-            TestDecoration()
-        }
-        val underTest = createAppendingAllDecorator(listOf(provider))
-
-        createdInstancesCount shouldBeEqualTo if (initStrategy == Decoration.InitStrategy.SINGLETON) 1 else 0
-
-        underTest.rpc("")
-        underTest.rpc("")
-
-        createdInstancesCount shouldBeEqualTo 1
-    }
-
-    @Test
-    fun `single instance of decoration is created lazily when requested with init strategy and first RPC is called`() {
-        testDispatcher.runBlockingTest {
-            testOnlyOneDecorationInstanceCreation(Decoration.InitStrategy.LAZY)
-        }
-    }
-
-    @Test
     fun `stub's decorations are appended to the global ones for appendAll strategy`() = testDispatcher.runBlockingTest {
-        val underTest = createAppendingAllDecorator(listOf(firstDecorationProvider))
+        val underTest = createAppendingAllDecorator(listOf(firstDecoration))
         val timeBeforeRpcCall = System.nanoTime()
 
         underTest.rpc("")
 
         val lastGlobalDecorationCallTime = assertThatAllGlobalDecorationsWerePreserved(timeBeforeRpcCall)
-        firstDecorationProvider.lastSuspendFunDecorationNanoTime shouldBeGreaterThan lastGlobalDecorationCallTime
+        firstDecoration.suspendFunDecorationNanoTime shouldBeGreaterThan lastGlobalDecorationCallTime
     }
 
     /**
@@ -271,13 +226,13 @@ class DecoratorProcessorTest : CoroutineTest() {
      * of the last one for further possible assertions
      */
     private fun assertThatAllGlobalDecorationsWerePreserved(timeBeforeRpcCall: Long): Long {
-        val globalDecorationACallTime = globalDecorationAProvider.getDecoration().suspendFunDecorationNanoTime
+        val globalDecorationACallTime = globalDecorationA.suspendFunDecorationNanoTime
         globalDecorationACallTime shouldBeGreaterThan timeBeforeRpcCall
 
-        val globalDecorationBCallTime = globalDecorationBProvider.getDecoration().suspendFunDecorationNanoTime
+        val globalDecorationBCallTime = globalDecorationB.suspendFunDecorationNanoTime
         globalDecorationBCallTime shouldBeGreaterThan globalDecorationACallTime
 
-        val globalDecorationCCallTime = globalDecorationCProvider.getDecoration().suspendFunDecorationNanoTime
+        val globalDecorationCCallTime = globalDecorationC.suspendFunDecorationNanoTime
         globalDecorationCCallTime shouldBeGreaterThan globalDecorationBCallTime
 
         return globalDecorationCCallTime
@@ -285,38 +240,38 @@ class DecoratorProcessorTest : CoroutineTest() {
 
     @Test
     fun `stub's decorations replace all global ones for replaceAll strategy`() = testDispatcher.runBlockingTest {
-        val underTest = createReplacingAllDecorator(stubDecorationProviders = listOf(firstDecorationProvider))
+        val underTest = createReplacingAllDecorator(stubDecorations = listOf(firstDecoration))
         val timeBeforeRpcCall = System.nanoTime()
 
         underTest.rpc()
 
         assertThatNoGlobalDecorationWasCalled(timeBeforeRpcCall)
-        firstDecorationProvider.lastSuspendFunDecorationNanoTime shouldBeGreaterThan timeBeforeRpcCall
+        firstDecoration.suspendFunDecorationNanoTime shouldBeGreaterThan timeBeforeRpcCall
     }
 
     private fun createReplacingAllDecorator(
-        stubDecorationProviders: List<Decoration.Provider<*>>,
-        customRpcDecorationProviders: List<Decoration.Provider<*>> = emptyList(),
-        anotherCustomRpcDecorationProviders: List<Decoration.Provider<*>> = emptyList(),
+        stubDecorations: List<Decoration>,
+        customRpcDecorations: List<Decoration> = emptyList(),
+        anotherCustomRpcDecorations: List<Decoration> = emptyList(),
     ): ReplacingAllStubDecorator {
         return ReplacingAllStubDecorator(
             createGlobalDecoratorConfig(),
             ReplacingAllStubDecoratorConfig(
-                stubDecorationProviders = stubDecorationProviders,
-                customRpcDecorationProviders = customRpcDecorationProviders,
-                anotherCustomRpcDecorationProviders = anotherCustomRpcDecorationProviders
+                stubDecorations = stubDecorations,
+                customRpcDecorations = customRpcDecorations,
+                anotherCustomRpcDecorations = anotherCustomRpcDecorations
             )
         )
     }
 
     private fun assertThatNoGlobalDecorationWasCalled(timeBeforeRpcCall: Long) {
-        val globalDecorationACallTime = globalDecorationAProvider.getDecoration().suspendFunDecorationNanoTime
+        val globalDecorationACallTime = globalDecorationA.suspendFunDecorationNanoTime
         globalDecorationACallTime shouldBeLessThan timeBeforeRpcCall // global decoration was not called -> was removed
 
-        val globalDecorationBCallTime = globalDecorationBProvider.getDecoration().suspendFunDecorationNanoTime
+        val globalDecorationBCallTime = globalDecorationB.suspendFunDecorationNanoTime
         globalDecorationBCallTime shouldBeLessThan timeBeforeRpcCall // global decoration was not called -> was removed
 
-        val globalDecorationCCallTime = globalDecorationCProvider.getDecoration().suspendFunDecorationNanoTime
+        val globalDecorationCCallTime = globalDecorationC.suspendFunDecorationNanoTime
         globalDecorationCCallTime shouldBeLessThan timeBeforeRpcCall // global decoration was not called -> was removed
     }
 
@@ -324,8 +279,8 @@ class DecoratorProcessorTest : CoroutineTest() {
     fun `stub's decorations are modified in custom way for custom strategy`() = testDispatcher.runBlockingTest {
         // Arrange
         val underTest = createCustomDecorator(
-            replaceStubProvider = firstDecorationProvider,
-            appendStubProvider = secondDecorationProvider
+            replaceStubDecoration = firstDecoration,
+            appendStubDecoration = secondDecoration
         )
         val timeBeforeRpcCall = System.nanoTime()
 
@@ -334,44 +289,44 @@ class DecoratorProcessorTest : CoroutineTest() {
 
         // Assert
         // global decoration was not called -> was removed
-        val globalDecorationACallTime = globalDecorationAProvider.getDecoration().suspendFunDecorationNanoTime
+        val globalDecorationACallTime = globalDecorationA.suspendFunDecorationNanoTime
         globalDecorationACallTime shouldBeLessThan timeBeforeRpcCall
 
         // global decoration was not called -> was removed
-        val globalDecorationBCallTime = globalDecorationBProvider.getDecoration().suspendFunDecorationNanoTime
+        val globalDecorationBCallTime = globalDecorationB.suspendFunDecorationNanoTime
         globalDecorationBCallTime shouldBeLessThan timeBeforeRpcCall
 
         // was called first -> replaced second global decoration
-        val firstStubDecorationCallTime = firstDecorationProvider.lastSuspendFunDecorationNanoTime
+        val firstStubDecorationCallTime = firstDecoration.suspendFunDecorationNanoTime
         firstStubDecorationCallTime shouldBeGreaterThan timeBeforeRpcCall
 
         // was called second -> when first stub's decoration replaced second global one, positions were preserved
-        val globalDecorationCCallTime = globalDecorationCProvider.getDecoration().suspendFunDecorationNanoTime
+        val globalDecorationCCallTime = globalDecorationC.suspendFunDecorationNanoTime
         globalDecorationCCallTime shouldBeGreaterThan firstStubDecorationCallTime
 
         // was called on the last place, it was appended at the end
-        secondDecorationProvider.lastSuspendFunDecorationNanoTime shouldBeGreaterThan globalDecorationCCallTime
+        secondDecoration.suspendFunDecorationNanoTime shouldBeGreaterThan globalDecorationCCallTime
     }
 
     private fun createCustomDecorator(
-        replaceStubProvider: Decoration.Provider<*>,
-        appendStubProvider: Decoration.Provider<*>,
-        replaceCustomRpcProvider: Decoration.Provider<*>? = null,
-        appendCustomRpcProvider: Decoration.Provider<*>? = null,
+        replaceStubDecoration: Decoration,
+        appendStubDecoration: Decoration,
+        replaceCustomRpcDecoration: Decoration? = null,
+        appendCustomRpcDecoration: Decoration? = null,
     ): CustomStubDecorator {
         return CustomStubDecorator(
             createGlobalDecoratorConfig(),
             CustomStubDecoratorConfig(
-                replaceStubProvider = replaceStubProvider,
-                appendStubProvider = appendStubProvider,
-                replaceCustomRpcProvider = replaceCustomRpcProvider,
-                appendCustomRpcProvider = appendCustomRpcProvider
+                replaceStubDecoration = replaceStubDecoration,
+                appendStubDecoration = appendStubDecoration,
+                replaceCustomRpcDecoration = replaceCustomRpcDecoration,
+                appendCustomRpcDecoration = appendCustomRpcDecoration
             )
         )
     }
 
     @Test
-    fun `throws exception when custom strategy tries to remove provider which does not exist`() {
+    fun `throws exception when custom strategy tries to remove decoration which does not exist`() {
         testExceptionThrowing { globalDecoratorConfig ->
             RemoveExceptionStubDecorator(globalDecoratorConfig, RemoveExceptionDecoratorConfig())
         }
@@ -387,7 +342,7 @@ class DecoratorProcessorTest : CoroutineTest() {
     }
 
     @Test
-    fun `throws exception when custom strategy tries to replace provider which does not exist`() {
+    fun `throws exception when custom strategy tries to replace decoration which does not exist`() {
         testExceptionThrowing { globalDecoratorConfig ->
             ReplaceExceptionStubDecorator(globalDecoratorConfig, ReplaceExceptionDecoratorConfig())
         }
@@ -396,113 +351,113 @@ class DecoratorProcessorTest : CoroutineTest() {
     @Test
     fun `rpc's decorations are appended to the higher level ones for appendAll strategy`() = testDispatcher.runBlockingTest {
         // Arrange
-        val stubsDecorationProvider = firstDecorationProvider
-        val customRpcDecorationProvider = secondDecorationProvider
+        val stubsDecoration = firstDecoration
+        val customRpcDecoration = secondDecoration
         val underTest = createAppendingAllDecorator(
-            stubDecorationProviders = listOf(stubsDecorationProvider),
-            customRpcDecorationProviders = listOf(customRpcDecorationProvider)
+            stubDecorations = listOf(stubsDecoration),
+            customRpcDecorations = listOf(customRpcDecoration)
         )
         val timeBeforeRpcCall = System.nanoTime()
 
         // Act
-        underTest.customDecorationsRpc(underTest.customDecorationsRpcDecorationProviders)
+        underTest.customDecorationsRpc(underTest.customDecorationsRpcDecorations)
 
         // Assert
-        val stubDecorationCallTime = stubsDecorationProvider.lastSuspendFunDecorationNanoTime
+        val stubDecorationCallTime = stubsDecoration.suspendFunDecorationNanoTime
 
         val lastGlobalDecorationCallTime = assertThatAllGlobalDecorationsWerePreserved(timeBeforeRpcCall)
         stubDecorationCallTime shouldBeGreaterThan lastGlobalDecorationCallTime
-        customRpcDecorationProvider.lastSuspendFunDecorationNanoTime shouldBeGreaterThan stubDecorationCallTime
+        customRpcDecoration.suspendFunDecorationNanoTime shouldBeGreaterThan stubDecorationCallTime
     }
 
     @Test
     fun `rpc's decorations replace all higher level ones for replaceAll strategy`() = testDispatcher.runBlockingTest {
-        val stubsDecorationProvider = firstDecorationProvider
-        val customRpcDecorationProvider = secondDecorationProvider
+        val stubsDecoration = firstDecoration
+        val customRpcDecoration = secondDecoration
         val underTest = createReplacingAllDecorator(
-            stubDecorationProviders = listOf(stubsDecorationProvider),
-            customRpcDecorationProviders = listOf(customRpcDecorationProvider)
+            stubDecorations = listOf(stubsDecoration),
+            customRpcDecorations = listOf(customRpcDecoration)
         )
         val timeBeforeRpcCall = System.nanoTime()
 
-        underTest.customRpc(underTest.customRpcDecorationProviders)
+        underTest.customRpc(underTest.customRpcDecorations)
 
         assertThatNoGlobalDecorationWasCalled(timeBeforeRpcCall)
-        stubsDecorationProvider.lastSuspendFunDecorationNanoTime shouldBeLessThan timeBeforeRpcCall // Stub's decoration was not called
-        customRpcDecorationProvider.lastSuspendFunDecorationNanoTime shouldBeGreaterThan timeBeforeRpcCall
+        stubsDecoration.suspendFunDecorationNanoTime shouldBeLessThan timeBeforeRpcCall // Stub's decoration was not called
+        customRpcDecoration.suspendFunDecorationNanoTime shouldBeGreaterThan timeBeforeRpcCall
     }
 
     @Test
     fun `rpc's decorations are modified in custom way for custom strategy`() = testDispatcher.runBlockingTest {
         // Arrange
-        val replaceStubProvider = TestDecoration.Provider(Decoration.Provider.Id("replaceStubProvider"))
-        val appendStubProvider = TestDecoration.Provider(Decoration.Provider.Id("appendStubProvider"))
-        val replaceRpcProvider = TestDecoration.Provider(Decoration.Provider.Id("replaceRpcProvider"))
-        val appendRpcProvider = TestDecoration.Provider(Decoration.Provider.Id("appendRpcProvider"))
+        val replaceStubDecoration = TestDecoration(Decoration.Id("replaceStubDecoration"))
+        val appendStubDecoration = TestDecoration(Decoration.Id("appendStubDecoration"))
+        val replaceRpcDecoration = TestDecoration(Decoration.Id("replaceRpcDecoration"))
+        val appendRpcDecoration = TestDecoration(Decoration.Id("appendRpcDecoration"))
         val underTest = createCustomDecorator(
-            replaceStubProvider = replaceStubProvider,
-            appendStubProvider = appendStubProvider,
-            replaceCustomRpcProvider = replaceRpcProvider,
-            appendCustomRpcProvider = appendRpcProvider
+            replaceStubDecoration = replaceStubDecoration,
+            appendStubDecoration = appendStubDecoration,
+            replaceCustomRpcDecoration = replaceRpcDecoration,
+            appendCustomRpcDecoration = appendRpcDecoration
         )
         val timeBeforeRpcCall = System.nanoTime()
 
         // Act
-        underTest.customRpc(underTest.customRpcDecorationProviders)
+        underTest.customRpc(underTest.customRpcDecorations)
 
         // Assert
         // globalDecorationA was not called -> was removed
-        val globalDecorationACallTime = globalDecorationAProvider.getDecoration().suspendFunDecorationNanoTime
+        val globalDecorationACallTime = globalDecorationA.suspendFunDecorationNanoTime
         globalDecorationACallTime shouldBeLessThan timeBeforeRpcCall
 
         // globalDecorationB was not called -> was removed
-        val globalDecorationBCallTime = globalDecorationBProvider.getDecoration().suspendFunDecorationNanoTime
+        val globalDecorationBCallTime = globalDecorationB.suspendFunDecorationNanoTime
         globalDecorationBCallTime shouldBeLessThan timeBeforeRpcCall
 
         // replaceStubDecoration was not called -> was removed
-        val replaceStubDecorationCallTime = replaceStubProvider.lastSuspendFunDecorationNanoTime
+        val replaceStubDecorationCallTime = replaceStubDecoration.suspendFunDecorationNanoTime
         replaceStubDecorationCallTime shouldBeLessThan timeBeforeRpcCall
 
         // appendStubDecoration was not called -> was removed
-        val appendStubDecorationCallTime = appendStubProvider.lastSuspendFunDecorationNanoTime
+        val appendStubDecorationCallTime = appendStubDecoration.suspendFunDecorationNanoTime
         appendStubDecorationCallTime shouldBeLessThan timeBeforeRpcCall
 
         // was called first -> replaced replaceStubDecoration
-        val replaceRpcDecorationCallTime = replaceRpcProvider.lastSuspendFunDecorationNanoTime
+        val replaceRpcDecorationCallTime = replaceRpcDecoration.suspendFunDecorationNanoTime
         replaceRpcDecorationCallTime shouldBeGreaterThan timeBeforeRpcCall
 
         // was called second -> replaced replaceStubDecoration
-        val globalDecorationCCallTime = globalDecorationCProvider.getDecoration().suspendFunDecorationNanoTime
+        val globalDecorationCCallTime = globalDecorationC.suspendFunDecorationNanoTime
         globalDecorationCCallTime shouldBeGreaterThan replaceRpcDecorationCallTime
 
         // was called on the last place, it was appended at the end
-        appendRpcProvider.lastSuspendFunDecorationNanoTime shouldBeGreaterThan globalDecorationCCallTime
+        appendRpcDecoration.suspendFunDecorationNanoTime shouldBeGreaterThan globalDecorationCCallTime
     }
 
     @Test
     fun `rpc's custom decorations are applied to correct rpc when there is more custom rpcs decorations`() = testDispatcher.runBlockingTest {
         // Arrange
-        val customRpcDecorationProvider = TestDecoration.Provider()
-        val anotherCustomRpcDecorationProvider = TestDecoration.Provider()
+        val customRpcDecoration = TestDecoration()
+        val anotherCustomRpcDecoration = TestDecoration()
         val underTest = createReplacingAllDecorator(
-            stubDecorationProviders = listOf(TestDecoration.Provider()),
-            customRpcDecorationProviders = listOf(customRpcDecorationProvider),
-            anotherCustomRpcDecorationProviders = listOf(anotherCustomRpcDecorationProvider),
+            stubDecorations = listOf(TestDecoration()),
+            customRpcDecorations = listOf(customRpcDecoration),
+            anotherCustomRpcDecorations = listOf(anotherCustomRpcDecoration),
         )
         val timeBeforeRpcCall = System.nanoTime()
 
         // Act
-        underTest.customRpc(underTest.customRpcDecorationProviders)
+        underTest.customRpc(underTest.customRpcDecorations)
 
         // Assert
-        customRpcDecorationProvider.lastSuspendFunDecorationNanoTime shouldBeGreaterThan timeBeforeRpcCall
-        anotherCustomRpcDecorationProvider.lastSuspendFunDecorationNanoTime shouldBeLessThan timeBeforeRpcCall // Not called yet
+        customRpcDecoration.suspendFunDecorationNanoTime shouldBeGreaterThan timeBeforeRpcCall
+        anotherCustomRpcDecoration.suspendFunDecorationNanoTime shouldBeLessThan timeBeforeRpcCall // Not called yet
 
         // Act - We call this after first assert to reliably verify that decorations for particular RPCs were called correctly
-        underTest.anotherCustomRpc(underTest.anotherCustomRpcDecorationProviders)
+        underTest.anotherCustomRpc(underTest.anotherCustomRpcDecorations)
 
         // Assert
-        anotherCustomRpcDecorationProvider.lastSuspendFunDecorationNanoTime shouldBeGreaterThan timeBeforeRpcCall
+        anotherCustomRpcDecoration.suspendFunDecorationNanoTime shouldBeGreaterThan timeBeforeRpcCall
     }
 
     /**
@@ -510,8 +465,8 @@ class DecoratorProcessorTest : CoroutineTest() {
      * can be used both for verifying that the [Decoration] was called and also verifying the order
      * of [Decoration]s.
      */
-    private class TestDecoration : Decoration {
-
+    private class TestDecoration(override val id: Decoration.Id = ID) : Decoration {
+                
         var suspendFunDecorationNanoTime = 0L
             private set
 
@@ -528,28 +483,9 @@ class DecoratorProcessorTest : CoroutineTest() {
             return rpc()
         }
 
-        class Provider(
-            override val id: Id = ID,
-            initStrategy: Decoration.InitStrategy = Decoration.InitStrategy.SINGLETON,
-            factory: () -> TestDecoration = ::TestDecoration
-        ) : Decoration.Provider<TestDecoration>(initStrategy, factory) {
+        companion object {
 
-            /**
-             * Returns time of the last suspend fun decoration. If [Decoration.InitStrategy.FACTORY]
-             * is set, multiple invocations return different results.
-             */
-            val lastSuspendFunDecorationNanoTime get() = getDecoration().suspendFunDecorationNanoTime
-
-            /**
-             * Returns time of the last streaming fun decoration. If [Decoration.InitStrategy.FACTORY]
-             * is set, multiple invocations return different results.
-             */
-            val lastStreamingFunDecorationNanoTime get() = getDecoration().streamingFunDecorationNanoTime
-
-            companion object {
-
-                val ID = Id(Provider::class.qualifiedName!!)
-            }
+            val ID = Decoration.Id(TestDecoration::class.qualifiedName!!)
         }
     }
 
