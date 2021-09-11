@@ -13,8 +13,6 @@ import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 
-// TODO Try to solve visibility of constructor of custom decorations "wrapper" classed (prevent from being created)
-// TODO Revalidate whole solution (API) / try on real app (FN)
 // TODO Increase deps versions
 // TODO Solve other possible TODOs in the library
 // TODO Go through all files and code review them

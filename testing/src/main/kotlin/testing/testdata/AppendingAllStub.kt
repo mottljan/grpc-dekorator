@@ -70,11 +70,11 @@ class AppendingAllStub(private val testCoroutineStubListener: TestCoroutineStubL
         return flowOf(Unit)
     }
 
-    suspend fun customDecorationsRpc() {}
+    suspend fun customDecorationsRpc() = Unit
 
-    suspend fun customDecorationsRpcWithParam(param: String) {}
+    suspend fun customDecorationsRpcWithParam(param: String) = Unit
 
-    suspend fun customDecorationsRpcWithMultipleParams(param1: String, param2: String) {}
+    suspend fun customDecorationsRpcWithMultipleParams(param1: String, param2: String) = Unit
 }
 
 /**

@@ -466,7 +466,7 @@ class DecoratorProcessorTest : CoroutineTest() {
      * of [Decoration]s.
      */
     private class TestDecoration(override val id: Decoration.Id = ID) : Decoration {
-                
+
         var suspendFunDecorationNanoTime = 0L
             private set
 

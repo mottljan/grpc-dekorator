@@ -1,8 +1,6 @@
 package testing.testdata
 
 import api.annotation.DecoratorConfiguration
-import api.decoration.AppendAllStrategy
-import api.decoration.Decoration
 import api.decoration.DispatcherSwappingDecoration
 import api.decoration.appendAllStrategy
 import api.decorator.DecoratorConfig
