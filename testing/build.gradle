@@ -33,7 +33,10 @@ protobuf {
 
 kotlin.sourceSets.main {
     kotlin.srcDirs(
+        // TODO below line is needed so far for AS to recognize generated sources used in manually
+        //  written sources (https://github.com/google/ksp/issues/37)
         file("$buildDir/generated/ksp/main/kotlin"),
+        // Including generated gRPC sources is needed for KSP to be able to resolve them during processing
         file("$buildDir/generated/source/proto/main/grpckt"),
         file("$buildDir/generated/source/proto/main/java")
     )
@@ -58,6 +61,8 @@ dependencies {
 
 }
 
+// Declares explicit dependency on generateProto task for kspKotlin, so we can be sure that gRPC code
+// is generated before for KSP to be able to process that
 afterEvaluate {
     def kspTaskName = "kspKotlin"
     def generateProtoTaskName = "generateProto"
