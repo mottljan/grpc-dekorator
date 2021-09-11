@@ -1,1 +1,20 @@
-# TODO Why does this file exist?
+exceptions:
+  TooGenericExceptionCaught:
+    active: false
+comments:
+  AbsentOrWrongFileLicense:
+    active: false
+complexity:
+  TooManyFunctions:
+    active: false
+formatting:
+  MaximumLineLength:
+    maxLineLength: 150
+style:
+  MaxLineLength:
+    maxLineLength: 150
+  MagicNumber:
+    ignorePropertyDeclaration: true
+    ignoreLocalVariableDeclaration: true
+  UnnecessaryAbstractClass:
+    active: false
