@@ -48,6 +48,7 @@ dependencies {
     implementation(Deps.junitJupiter)
     implementation(Deps.kotlin)
 
+    implementation(Deps.gRpcStub)
     implementation(Deps.gRpcKotlinStub)
     implementation(Deps.gRpcProtobuf)
     implementation(Deps.javaxAnnotation)

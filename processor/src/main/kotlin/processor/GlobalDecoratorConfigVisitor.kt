@@ -10,7 +10,9 @@ import com.google.devtools.ksp.visitor.KSDefaultVisitor
 /**
  * Processes [GlobalDecoratorConfiguration] and returns [GlobalDecoratorConfigResult]
  */
-internal class GlobalDecoratorConfigVisitor(private val environment: SymbolProcessorEnvironment) : KSDefaultVisitor<Unit, GlobalDecoratorConfigResult>() {
+internal class GlobalDecoratorConfigVisitor(
+    private val environment: SymbolProcessorEnvironment
+) : KSDefaultVisitor<Unit, GlobalDecoratorConfigResult>() {
 
     override fun defaultHandler(node: KSNode, data: Unit): GlobalDecoratorConfigResult {
         logAndThrow(DecoratorProcessor.GLOBAL_DECORATOR_CONFIGURATION_CLASS_KIND_ERROR, node)
