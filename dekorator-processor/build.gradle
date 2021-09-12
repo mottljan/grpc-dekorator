@@ -1,5 +1,5 @@
 dependencies {
-    implementation(project(":api"))
+    implementation(project(":dekorator-api"))
 
     implementation(Deps.coroutines)
     implementation(Deps.kotlin)

@@ -43,8 +43,8 @@ kotlin.sourceSets.main {
 }
 
 dependencies {
-    implementation(project(":api"))
-    ksp(project(":processor"))
+    implementation(project(":dekorator-api"))
+    ksp(project(":dekorator-processor"))
 
     implementation(Deps.coroutines)
     implementation(Deps.coroutinesTesting)
