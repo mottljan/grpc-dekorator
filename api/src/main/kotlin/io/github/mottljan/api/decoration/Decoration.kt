@@ -46,3 +46,11 @@ interface Decoration {
 fun DecoratorConfig<*>.noChangesStrategy(): Decoration.Strategy {
     return appendAllStrategy {}
 }
+
+/**
+ * Creates a [Decoration.Strategy] which clears all higher level [Decoration]s
+ */
+@Suppress("unused") // Extension to limit the scope where this can be used
+fun DecoratorConfig<*>.clearAllStrategy(): Decoration.Strategy {
+    return replaceAllStrategy {}
+}
