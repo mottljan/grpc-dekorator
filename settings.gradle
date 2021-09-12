@@ -5,7 +5,7 @@ pluginManagement {
     }
 }
 
-rootProject.name = "grpc-kotlin-stub-decorator"
+rootProject.name = "grpc-dekorator"
 
 include(":api")
 include(":processor")
