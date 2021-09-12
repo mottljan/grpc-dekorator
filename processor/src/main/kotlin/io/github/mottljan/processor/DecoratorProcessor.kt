@@ -14,9 +14,7 @@ import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 
 // TODO Go through all files and code review them
-// TODO Think about lib name
 // TODO Write README
-// TODO Solve package name
 // TODO Publish lib
 
 /**
