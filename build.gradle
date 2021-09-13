@@ -2,13 +2,13 @@ buildscript {
     ext {
         // Versions can not be used directly in plugin version declaration below so we need to store it to variable like this
         kotlin_version = "${Versions.kotlin}"
-        detect_version = "${Versions.detekt}"
+        detekt_version = "${Versions.detekt}"
     }
 }
 
 plugins {
     id "org.jetbrains.kotlin.jvm" version "$kotlin_version" apply false
-    id "io.gitlab.arturbosch.detekt" version "$detect_version" apply false
+    id "io.gitlab.arturbosch.detekt" version "$detekt_version" apply false
 }
 
 allprojects {

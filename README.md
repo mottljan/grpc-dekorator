@@ -217,7 +217,7 @@ It is needed to do some additional setup for the library to work correctly. Proc
 with generated gRPC sources and they have to be resolvable by the processor. To make them resolvable
 you need to include them to the sources like this:
 
-JVM project
+**JVM project**
 ```
 kotlin.sourceSets.main {
     kotlin.srcDirs(
@@ -228,7 +228,7 @@ kotlin.sourceSets.main {
 }
 ```
 
-Android project
+**Android project**
 ```
 sourceSets {
     applicationVariants.all { variant ->
@@ -246,7 +246,7 @@ can work even without the explicit dependency, but Gradle will warn you during b
 "hidden" dependency and recommend you to make it explicit. Since it could potentially break in the 
 future (or for some build variants), it is better to declare the dependency explicitly:
 
-JVM project
+**JVM project**
 ```
 afterEvaluate {
     def kspTaskName = "kspKotlin"
@@ -257,7 +257,7 @@ afterEvaluate {
 }
 ```
 
-Android project
+**Android project**
 ```
 afterEvaluate {
     android.applicationVariants.all { variant ->
@@ -275,7 +275,7 @@ Finally, there is an opened [issue](https://github.com/google/ksp/issues/37) for
 not to be recognized by the IDE (project will compile though). You can make the files recognizable
 like this:
 
-JVM project
+**JVM project**
 ```
 kotlin.sourceSets.main {
     kotlin.srcDirs(
@@ -285,7 +285,7 @@ kotlin.sourceSets.main {
 }
 ```
 
-Android project
+**Android project**
 ```
 sourceSets {
     applicationVariants.all { variant ->
