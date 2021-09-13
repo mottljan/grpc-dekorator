@@ -80,6 +80,6 @@ internal class RpcConfigurationVisitor(
  * [rpcName] is the name of the RPC related to this configuration and [rpcConfigMethodName] is the
  * name of the method annotated with [RpcConfiguration].
  */
-data class RpcConfigResult(val rpcName: String, val rpcConfigMethodName: String)
+internal data class RpcConfigResult(val rpcName: String, val rpcConfigMethodName: String)
 
 internal class InvalidRpcConfigurationException : Exception("RPC configuration is invalid")
