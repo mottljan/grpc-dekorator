@@ -9,3 +9,10 @@ dependencies {
     testImplementation(Deps.kluent)
     testImplementation(Deps.kspTesting)
 }
+
+ext {
+    PUBLISH_ARTIFACT_ID = 'dekorator-processor'
+    POM_DESCRIPTION = 'Annotation processor of the gRPC Dekorator'
+}
+
+apply from: "${rootProject.projectDir}/gradle/mavencentral/publish.gradle"

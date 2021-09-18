@@ -9,6 +9,8 @@ buildscript {
 plugins {
     id "org.jetbrains.kotlin.jvm" version "$kotlin_version" apply false
     id "io.gitlab.arturbosch.detekt" version "$detekt_version" apply false
+    id "io.codearte.nexus-staging" version "0.22.0"
+    id "org.jetbrains.dokka" version "1.4.32" apply false
 }
 
 allprojects {
@@ -36,3 +38,9 @@ allprojects {
         useJUnitPlatform()
     }
 }
+
+/**
+ * Define properties with library info
+ */
+ext.libProperties = new Properties()
+ext.libProperties.load(file("${rootDir}/lib.properties").newReader())

@@ -8,3 +8,18 @@ dependencies {
     testImplementation(Deps.junitJupiter)
     testImplementation(Deps.kluent)
 }
+
+ext {
+    PUBLISH_ARTIFACT_ID = 'dekorator-api'
+    POM_DESCRIPTION = 'Contains API of the gRPC Dekorator'
+}
+
+apply from: "${rootProject.projectDir}/gradle/mavencentral/publish.gradle"
+
+afterEvaluate {
+    def jarTask = tasks.getByName("jar")
+    def signingTask = tasks.getByName("signReleasePublication")
+    def publishingTask = tasks.getByName("publishReleasePublicationToSonatypeRepository")
+    signingTask.dependsOn(jarTask)
+    publishingTask.dependsOn(jarTask)
+}

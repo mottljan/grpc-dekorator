@@ -13,9 +13,6 @@ import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 
-// TODO Create signing for lib
-// TODO Integrate publishing process to the project
-// TODO Test on maven local
 // TODO Create publish Github action
 // TODO Publish lib
 
