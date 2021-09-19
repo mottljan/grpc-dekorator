@@ -9,6 +9,7 @@ import kotlinx.coroutines.CancellationException
  * can serve either as a statement or an expression.
  */
 // suspend is intentional to force usage only in coroutines since normal functions should use classic try/catch
+@Suppress("TooGenericExceptionCaught")
 internal suspend inline fun <T> tryCoroutine(tryBlock: () -> T): TryCoroutineResult<T> {
     return try {
         TryCoroutineResult.Success(tryBlock())
