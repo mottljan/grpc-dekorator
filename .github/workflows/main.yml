@@ -1,0 +1,34 @@
+name: Main & PR
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  verification:
+    name: Verify
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Set up JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Assemble
+        run: ./gradlew assemble
+
+      - name: Test
+        run: ./gradlew test
+
+      - name: Detekt
+        run: ./gradlew detekt
