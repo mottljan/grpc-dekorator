@@ -13,9 +13,6 @@ import com.google.devtools.ksp.processing.SymbolProcessorProvider
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
 
-// TODO Create publish Github action
-// TODO Publish lib
-
 /**
  * [SymbolProcessor] processing classes annotated with [DecoratorConfiguration] together
  * with other needed symbols and generating gRPC stub decorator classes based on that.

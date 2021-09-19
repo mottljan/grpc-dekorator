@@ -18,7 +18,6 @@ artifacts {
     archives javadocJar
 }
 
-
 group = libProperties['GROUP']
 version = libProperties['VERSION_NAME']
 
@@ -127,6 +126,6 @@ nexusStaging {
 
 afterEvaluate {
     def assembleTask = tasks.getByName("assemble")
-    def pomFileGenerationTask = tasks.getByName("signReleasePublication")
-    pomFileGenerationTask.dependsOn(assembleTask)
+    def signingTask = tasks.getByName("signReleasePublication")
+    signingTask.dependsOn(assembleTask)
 }
