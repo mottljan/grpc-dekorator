@@ -1,7 +1,7 @@
 object Versions {
 
-    const val kotlin = "1.5.30"
-    const val ksp = "1.5.30-1.0.0"
+    const val kotlin = "1.5.31"
+    const val ksp = "1.5.31-1.0.0"
     const val protobufPlugin = "0.8.17"
     const val detekt = "1.18.1"
 }
