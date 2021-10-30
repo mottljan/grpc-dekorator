@@ -57,14 +57,14 @@ abstract class CoroutineStubDecorator(private val globalDecoratorConfig: GlobalD
     private fun MutableList<Decoration>.modifyBasedOnAction(action: CustomStrategy.Action) {
         when (action) {
             is CustomStrategy.Action.Remove -> {
-                val wasRemoved = removeIf { it.id == action.decorationId }
+                val wasRemoved = removeAll { it.id == action.decorationId }
                 if (!wasRemoved) {
                     deliverIllegalStrategyActionException(actionName = "remove", action.decorationId)
                 }
             }
             is CustomStrategy.Action.Replace -> {
                 var wasReplaced = false
-                replaceAll { decoration ->
+                replaceAll(this) { decoration ->
                     if (decoration.id == action.oldDecorationId) {
                         wasReplaced = true
                         action.newDecoration
@@ -86,5 +86,12 @@ abstract class CoroutineStubDecorator(private val globalDecoratorConfig: GlobalD
         val exception = IllegalStateException("Tried to $actionName ${Decoration::class.simpleName} " +
             "with id \"$decorationId\", but it was not found")
         globalDecoratorConfig?.handleException(exception) ?: throw exception
+    }
+
+    private fun <T> replaceAll(list: MutableList<T>, replace: (T) -> T) {
+        val listIterator = list.listIterator()
+        while (listIterator.hasNext()) {
+            listIterator.set(replace(listIterator.next()))
+        }
     }
 }

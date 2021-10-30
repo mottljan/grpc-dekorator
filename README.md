@@ -300,6 +300,11 @@ sourceSets {
 If you don't use Dekorator in the Android app module but in some Android library module, you need to
 replace `applicationVariants` with `libraryVariants`.
 
+### Android support
+
+Library officially supports Android minSdk 21. Theoretically lower versions might be ok too, 
+but are not tested.
+
 ## Limitations
 
 Because decorations are designed for usage with any RPC, you can't read request or response data.
